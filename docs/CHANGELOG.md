@@ -263,3 +263,41 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   en directo forzando el coche sobre un tile de muro y comprobando que
   la posición avanza frame a frame sin saltos mientras la velocidad cae
   de golpe (de 195 a ~16 en unos 320ms).
+
+### Changed
+- Segunda ronda de feedback: "el derrape ya está un poco mejor, pero
+  debería tener más ángulo, como si hiciera drift" y "el coche nunca
+  puede salir de los límites de la pantalla".
+  - **Derrape**: el suelo de agarre lateral anterior (0.05) en realidad
+    ya no era el límite real — con `CORNERING_GRIP_LOSS` en 0.85, el
+    valor de agarre efectivo en curva cerrada a velocidad se quedaba
+    fijo en 0.05 (`gripLateral` 0.9 menos 0.85) *antes* de que el suelo
+    llegara a aplicarse, así que bajarlo más no cambiaba nada. Subido
+    `CORNERING_GRIP_LOSS` a 0.95 y bajado `MIN_LATERAL_GRIP` a 0.02 (para
+    que el suelo sí sea ahora el límite real y no al revés) — el ángulo
+    de derrape en curva cerrada a velocidad sube de ~41° a ~61°
+    (validado por simulación a `dt` real de 60fps). El giro suave
+    (`steer` < ~0.9) y las maniobras a baja velocidad casi no lo notan,
+    así que sigue sin afectar a la maniobrabilidad de precisión.
+  - **Límite de pantalla**: el anillo exterior del circuito
+    (`public/tracks/rally-01.json`) estaba marcado como muro sólido
+    (además de ser, literalmente, el borde de todo el mapa — el circuito
+    ocupa el lienzo entero, 384×224px, sin margen), así que el coche
+    topaba con la fricción fuerte de "fuera de pista" justo al llegar al
+    borde de la zona asfaltada, sin apenas espacio para deslizar. Abierto
+    ese anillo exterior (ya no cuenta como muro, se queda como hierba
+    normal, agarre 0.6) para que sea un arcén real donde el coche puede
+    seguir circulando casi a velocidad normal antes de llegar al borde
+    literal de la pantalla; la isla central sigue siendo muro (es un
+    obstáculo del trazado, no el borde del mapa). Al abrir ese margen,
+    apareció un problema nuevo: al derrapar con fuerza hacia el borde el
+    coche podía salirse del área visible de la cámara (fija, sin scroll,
+    F3) y "perderse" de pantalla. Añadido un recorte de posición a los
+    límites del circuito en `RaceScene.update()` (no es un muro: no
+    frena ni rebota, solo evita que la posición se salga del encuadre),
+    así que el coche puede llegar a pegarse al borde a toda velocidad y
+    deslizar a lo largo de él sin desaparecer nunca de la pantalla.
+    Verificado en directo: lanzando el coche a tope hacia el borde,
+    cruza el arcén de hierba sin apenas perder velocidad, y solo al
+    tocar el límite literal empieza a frenar con fuerza mientras se
+    queda visible, pegado al borde.

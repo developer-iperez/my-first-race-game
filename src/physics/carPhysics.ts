@@ -43,9 +43,9 @@ const clamp = (value: number, min: number, max: number): number =>
  * girando suave o a baja velocidad casi no afecta, así que las maniobras
  * lentas y precisas (aparcar, esquivar) no se ven penalizadas.
  */
-const CORNERING_GRIP_LOSS = 0.85;
+const CORNERING_GRIP_LOSS = 0.95;
 /** Agarre lateral mínimo garantizado, para que nunca se vuelva un patinazo sin control. */
-const MIN_LATERAL_GRIP = 0.05;
+const MIN_LATERAL_GRIP = 0.02;
 
 /**
  * Aplica un factor de "agarre/fricción por frame a 60fps" de forma

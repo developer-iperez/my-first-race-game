@@ -149,6 +149,18 @@ export class RaceScene extends Phaser.Scene {
         });
       }
 
+      // La cámara es fija y encuadra el circuito completo sin scroll (F3):
+      // sin este límite, un derrape fuerte hacia el borde podría sacar el
+      // coche fuera del área visible y "perderlo" de la pantalla. No es un
+      // muro (no frena ni rebota, solo recorta la posición), así que el
+      // coche puede llegar a pegarse al borde a toda velocidad y seguir
+      // deslizando a lo largo de él con total normalidad.
+      this.car.setState({
+        ...this.car.state,
+        x: Phaser.Math.Clamp(this.car.state.x, 0, this.track.size.width),
+        y: Phaser.Math.Clamp(this.car.state.y, 0, this.track.size.height),
+      });
+
       const previousTargetIndex = this.lapTracker.nextTargetIndex;
       this.lapTracker.update(
         this.car.state.x,
