@@ -1,8 +1,12 @@
 name: Deploy to GitHub Pages
 
+# Despliega también desde la rama de desarrollo actual para poder probar el
+# juego en GitHub Pages antes de mergear a main. Quitar esa rama del trigger
+# (dejando solo "main") cuando se mergee de forma definitiva.
 on:
   push:
-    branches: [main]
+    branches: [main, claude/rally-game-architecture-dlnzzx]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
