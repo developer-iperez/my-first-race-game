@@ -32,6 +32,8 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Línea de meta, conteo de vueltas (exige pasar por los checkpoints en
   orden, no vale con tocar la meta sin dar la vuelta)
 - ✅ Cronómetro y mejor vuelta (HUD en pantalla)
+- ✅ Fase de fin de carrera: coche se congela al completar las vueltas,
+  botón para volver a empezar
 
 ## v0.3 — Estética 90s ⬜
 - ⬜ Pixel art del coche y el circuito

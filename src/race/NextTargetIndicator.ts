@@ -25,6 +25,11 @@ export class NextTargetIndicator {
     this.graphics.strokeCircle(x, y, radius);
   }
 
+  /** Oculta el indicador (p. ej. al terminar la carrera, ya no hay "próximo" objetivo). */
+  hide(): void {
+    this.graphics.clear();
+  }
+
   destroy(): void {
     this.graphics.destroy();
   }

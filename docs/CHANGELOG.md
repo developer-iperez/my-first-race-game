@@ -126,3 +126,18 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   (antes en la esquina inferior izquierda, ahora en la propia línea de
   meta) y los 4 checkpoints de las esquinas se reordenaron para formar un
   circuito coherente que termina siempre cruzando la meta en último lugar.
+
+### Added
+- Fase de fin de carrera: al completar las vueltas del circuito, el coche
+  se congela (deja de procesar física e entrada, incluso si llevaba
+  velocidad) y en el HUD aparece un botón "Volver a empezar" junto al
+  aviso de meta. Al pulsarlo, `RaceScene.restart()` reinicia la escena por
+  completo (`scene.restart()`): coche, cronómetro, vueltas y objetivo
+  vuelven a su estado inicial.
+  - Verificado end-to-end forzando el fin de carrera vía la propia API del
+    `LapTracker` (conducir un circuito entero por script no es fiable) y
+    comprobando la posición del coche en frames sucesivos: se detectó y
+    corrigió un bug real — `scene.restart()` reutiliza la misma instancia
+    de `RaceScene`, así que `raceElapsedMs` (un contador de clase, no
+    reconstruido en cada `create()`) se quedaba con el valor de la carrera
+    anterior en vez de arrancar en 0.

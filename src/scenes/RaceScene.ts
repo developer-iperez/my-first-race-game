@@ -36,12 +36,19 @@ export class RaceScene extends Phaser.Scene {
   private hud!: RaceHud;
   private nextTargetIndicator!: NextTargetIndicator;
   private raceElapsedMs = 0;
+  private sceneData!: RaceSceneData;
 
   constructor() {
     super('Race');
   }
 
   create(data: RaceSceneData): void {
+    // scene.restart() (botón "Volver a empezar") reutiliza esta misma
+    // instancia: los campos de clase NO se reinician solos, hay que
+    // resetearlos aquí a mano o se arrastra el cronómetro de la carrera anterior.
+    this.raceElapsedMs = 0;
+
+    this.sceneData = data;
     this.track = TrackLoader.get(this, data.trackKey);
     this.carDefinition = CarLoader.get(this, data.carKey);
 
@@ -65,7 +72,7 @@ export class RaceScene extends Phaser.Scene {
     // es tan ancho como para que el jugador tenga que pasar por el centro
     // exacto de cada checkpoint.
     this.lapTracker = new LapTracker(this.track.waypoints, this.track.laps, this.track.tileSize * 2.5);
-    this.hud = new RaceHud(this);
+    this.hud = new RaceHud(this, () => this.restartRace());
     this.nextTargetIndicator = new NextTargetIndicator(this);
 
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -91,31 +98,45 @@ export class RaceScene extends Phaser.Scene {
     this.car.setPhysics(applyDifficultyToPhysics(this.carDefinition.physics, difficulty));
   }
 
+  /** Reinicia la carrera desde cero: mismo circuito y coche, todo el estado limpio. */
+  private restartRace(): void {
+    this.scene.restart(this.sceneData);
+  }
+
   update(_time: number, deltaMs: number): void {
     if (this.settingsMenu.isOpen) return;
 
-    this.raceElapsedMs += deltaMs;
+    const state = this.lapTracker.getState();
 
-    const dt = deltaMs / 1000;
-    const input = this.readInput();
-    const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
+    if (state.finished) {
+      // Carrera terminada: el coche se congela donde esté (no se procesa
+      // más física ni entrada) y se oculta el indicador de objetivo.
+      this.nextTargetIndicator.hide();
+    } else {
+      this.raceElapsedMs += deltaMs;
 
-    const previous = { ...this.car.state };
-    this.car.update(dt, input, surfaceGrip);
+      const dt = deltaMs / 1000;
+      const input = this.readInput();
+      const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
 
-    if (isWallAt(this.track, this.car.state.x, this.car.state.y)) {
-      this.car.setState({
-        ...previous,
-        vx: previous.vx * WALL_BOUNCE_DAMPING,
-        vy: previous.vy * WALL_BOUNCE_DAMPING,
-      });
+      const previous = { ...this.car.state };
+      this.car.update(dt, input, surfaceGrip);
+
+      if (isWallAt(this.track, this.car.state.x, this.car.state.y)) {
+        this.car.setState({
+          ...previous,
+          vx: previous.vx * WALL_BOUNCE_DAMPING,
+          vy: previous.vy * WALL_BOUNCE_DAMPING,
+        });
+      }
+
+      this.lapTracker.update(this.car.state.x, this.car.state.y, this.raceElapsedMs);
+
+      const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
+      this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);
     }
 
-    this.lapTracker.update(this.car.state.x, this.car.state.y, this.raceElapsedMs);
     this.hud.update(this.lapTracker.getState(), this.raceElapsedMs - this.lapTracker.currentLapStartMs);
-
-    const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
-    this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);
   }
 
   private readInput(): CarInput {
