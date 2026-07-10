@@ -13,15 +13,25 @@ export interface LapTrackerState {
   finished: boolean;
 }
 
+/** Por debajo de esta velocidad no se exige dirección (coasteando/casi parado no es "ir marcha atrás"). */
+const MIN_SPEED_FOR_DIRECTION_CHECK = 5;
+
 /**
  * Progreso de una carrera: exige pasar por los waypoints del circuito EN
  * ORDEN (el primero, `start_finish`, es tanto la salida como la meta) para
  * contar una vuelta como válida — así no vale con tocar la línea de meta
  * sin dar la vuelta completa, ni cortar por en medio del circuito.
  *
- * Es una máquina de estados pura (sin Phaser): se le da la posición del
- * coche y el tiempo transcurrido en cada frame, y expone el estado de la
- * carrera. Eso la hace fácil de testear y de reutilizar si el HUD cambia.
+ * También exige cruzar cada waypoint en el sentido correcto: si el coche
+ * va claramente marcha atrás o recorre el circuito al revés, no cuenta
+ * (ver docs/CHANGELOG.md). El sentido esperado de cada waypoint se calcula
+ * solo, como el vector desde el waypoint anterior hasta él — no hace falta
+ * definirlo a mano en el JSON del circuito.
+ *
+ * Es una máquina de estados pura (sin Phaser): se le da la posición y
+ * velocidad del coche y el tiempo transcurrido en cada frame, y expone el
+ * estado de la carrera. Eso la hace fácil de testear y de reutilizar si el
+ * HUD cambia.
  */
 export class LapTracker {
   private nextWaypointIndex: number;
@@ -30,6 +40,7 @@ export class LapTracker {
   private laps: LapRecord[] = [];
   private bestLapMs: number | null = null;
   private finished = false;
+  private readonly expectedDirections: { x: number; y: number }[];
 
   constructor(
     private readonly waypoints: readonly Waypoint[],
@@ -39,6 +50,14 @@ export class LapTracker {
     // El coche sale ya situado en waypoints[0] (start_finish): el primer
     // objetivo es el siguiente punto, no la propia salida.
     this.nextWaypointIndex = waypoints.length > 1 ? 1 : 0;
+
+    this.expectedDirections = waypoints.map((wp, i) => {
+      const prev = waypoints[(i - 1 + waypoints.length) % waypoints.length];
+      const dx = wp.x - prev.x;
+      const dy = wp.y - prev.y;
+      const length = Math.hypot(dx, dy) || 1;
+      return { x: dx / length, y: dy / length };
+    });
   }
 
   get currentLapStartMs(): number {
@@ -50,13 +69,20 @@ export class LapTracker {
     return this.nextWaypointIndex;
   }
 
-  update(x: number, y: number, elapsedMs: number): void {
+  update(x: number, y: number, vx: number, vy: number, elapsedMs: number): void {
     if (this.finished || this.waypoints.length === 0) return;
 
     const targetIndex = this.nextWaypointIndex;
     const target = this.waypoints[targetIndex];
     const distance = Math.hypot(x - target.x, y - target.y);
     if (distance > this.triggerRadius) return;
+
+    const speed = Math.hypot(vx, vy);
+    if (speed > MIN_SPEED_FOR_DIRECTION_CHECK) {
+      const expected = this.expectedDirections[targetIndex];
+      const alignment = vx * expected.x + vy * expected.y;
+      if (alignment < 0) return; // va claramente en sentido contrario: no cuenta todavía
+    }
 
     // Objetivo alcanzado: el siguiente pasa a ser el de después (con vuelta
     // al principio del array). Esto solo marca a qué checkpoint apuntar

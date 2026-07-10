@@ -130,7 +130,13 @@ export class RaceScene extends Phaser.Scene {
         });
       }
 
-      this.lapTracker.update(this.car.state.x, this.car.state.y, this.raceElapsedMs);
+      this.lapTracker.update(
+        this.car.state.x,
+        this.car.state.y,
+        this.car.state.vx,
+        this.car.state.vy,
+        this.raceElapsedMs,
+      );
 
       const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
       this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);

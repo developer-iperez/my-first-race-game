@@ -141,3 +141,16 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     de `RaceScene`, así que `raceElapsedMs` (un contador de clase, no
     reconstruido en cada `create()`) se quedaba con el valor de la carrera
     anterior en vez de arrancar en 0.
+
+### Fixed
+- Un checkpoint contaba aunque el coche lo cruzara marcha atrás o
+  recorriendo el circuito en sentido contrario: la detección solo miraba
+  la distancia al waypoint, sin comprobar la dirección de cruce.
+  `LapTracker` calcula ahora el sentido esperado de cada tramo (el vector
+  desde el waypoint anterior hasta el actual, sin necesidad de definirlo a
+  mano en el JSON) y rechaza el cruce si la velocidad del coche va
+  claramente en dirección opuesta; a velocidad casi nula (coche coasteando)
+  no se exige dirección, para no ser excesivamente estricto. `update()`
+  recibe ahora también `vx, vy` del coche. 4 tests nuevos cubren marcha
+  atrás rechazada, aceptación al corregir el sentido, tolerancia a baja
+  velocidad y que dar toda la vuelta al revés no cuenta como vuelta válida.

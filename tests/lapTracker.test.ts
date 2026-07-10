@@ -10,20 +10,22 @@ const waypoints: Waypoint[] = [
 ];
 
 const RADIUS = 5;
+const SPEED = 50;
 
+// Direcciones esperadas de cada tramo (de un waypoint al siguiente): +x, +y, -x, -y.
 function driveThroughLap(tracker: LapTracker, startElapsedMs: number): number {
   let t = startElapsedMs;
-  tracker.update(100, 0, (t += 1000)); // checkpoint 1
-  tracker.update(100, 100, (t += 1000)); // checkpoint 2
-  tracker.update(0, 100, (t += 1000)); // checkpoint 3
-  tracker.update(0, 0, (t += 1000)); // vuelta a meta
+  tracker.update(100, 0, SPEED, 0, (t += 1000)); // checkpoint 1 (+x)
+  tracker.update(100, 100, 0, SPEED, (t += 1000)); // checkpoint 2 (+y)
+  tracker.update(0, 100, -SPEED, 0, (t += 1000)); // checkpoint 3 (-x)
+  tracker.update(0, 0, 0, -SPEED, (t += 1000)); // vuelta a meta (-y)
   return t;
 }
 
 describe('LapTracker', () => {
   it('does not complete a lap by touching the start/finish line without visiting checkpoints', () => {
     const tracker = new LapTracker(waypoints, 3, RADIUS);
-    tracker.update(0, 0, 500); // vuelve a tocar la salida sin dar la vuelta
+    tracker.update(0, 0, 0, -SPEED, 500); // vuelve a tocar la salida sin dar la vuelta
     expect(tracker.getState().lastLapMs).toBeNull();
   });
 
@@ -41,10 +43,10 @@ describe('LapTracker', () => {
     const tracker = new LapTracker(waypoints, 3, RADIUS);
     let t = driveThroughLap(tracker, 0); // vuelta 1: 4000ms
     // vuelta 2, más rápida (500ms por tramo -> 2000ms)
-    tracker.update(100, 0, (t += 500));
-    tracker.update(100, 100, (t += 500));
-    tracker.update(0, 100, (t += 500));
-    tracker.update(0, 0, (t += 500));
+    tracker.update(100, 0, SPEED, 0, (t += 500));
+    tracker.update(100, 100, 0, SPEED, (t += 500));
+    tracker.update(0, 100, -SPEED, 0, (t += 500));
+    tracker.update(0, 0, 0, -SPEED, (t += 500));
 
     const state = tracker.getState();
     expect(state.lastLapMs).toBe(2000);
@@ -85,13 +87,54 @@ describe('LapTracker', () => {
   it('exposes the index of the next waypoint to reach, advancing as checkpoints are hit', () => {
     const tracker = new LapTracker(waypoints, 3, RADIUS);
     expect(tracker.nextTargetIndex).toBe(1);
-    tracker.update(100, 0, 1000); // checkpoint 1
+    tracker.update(100, 0, SPEED, 0, 1000); // checkpoint 1
     expect(tracker.nextTargetIndex).toBe(2);
-    tracker.update(100, 100, 2000); // checkpoint 2
+    tracker.update(100, 100, 0, SPEED, 2000); // checkpoint 2
     expect(tracker.nextTargetIndex).toBe(3);
-    tracker.update(0, 100, 3000); // checkpoint 3
+    tracker.update(0, 100, -SPEED, 0, 3000); // checkpoint 3
     expect(tracker.nextTargetIndex).toBe(0); // ahora toca volver a la meta
-    tracker.update(0, 0, 4000); // cruza la meta: nueva vuelta
+    tracker.update(0, 0, 0, -SPEED, 4000); // cruza la meta: nueva vuelta
     expect(tracker.nextTargetIndex).toBe(1);
+  });
+
+  describe('dirección de cruce (bug: ir marcha atrás no debe contar)', () => {
+    it('does not advance the target when reaching it with velocity opposite the expected direction', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS);
+      // Objetivo es checkpoint 1 (100,0), dirección esperada +x; llega con velocidad -x (marcha atrás).
+      tracker.update(100, 0, -SPEED, 0, 1000);
+      expect(tracker.nextTargetIndex).toBe(1); // sigue esperando el mismo checkpoint
+      expect(tracker.getState().lastLapMs).toBeNull();
+    });
+
+    it('does count reaching a checkpoint once velocity aligns with the expected direction', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS);
+      tracker.update(100, 0, -SPEED, 0, 1000); // marcha atrás: rechazado
+      expect(tracker.nextTargetIndex).toBe(1);
+      tracker.update(100, 0, SPEED, 0, 1200); // ahora en sentido correcto: cuenta
+      expect(tracker.nextTargetIndex).toBe(2);
+    });
+
+    it('ignores direction at near-zero speed (coasting into a checkpoint still counts)', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS);
+      // Velocidad mínima, aunque el signo apunte "al revés" no debe rechazarse.
+      tracker.update(100, 0, -1, 0, 1000);
+      expect(tracker.nextTargetIndex).toBe(2);
+    });
+
+    it('driving the whole track backwards never completes a lap', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS);
+      // Intenta "la vuelta" en sentido contrario: da igual que toque los puntos,
+      // la velocidad en cada uno apunta siempre al revés de lo esperado.
+      let t = 0;
+      tracker.update(100, 0, -SPEED, 0, (t += 1000)); // rechazado (esperaba +x)
+      tracker.update(100, 100, 0, SPEED, (t += 1000)); // no es el objetivo actual (sigue siendo cp1)
+      tracker.update(0, 100, -SPEED, 0, (t += 1000)); // tampoco
+      tracker.update(0, 0, 0, -SPEED, (t += 1000)); // tampoco
+
+      const state = tracker.getState();
+      expect(state.lastLapMs).toBeNull();
+      expect(state.currentLap).toBe(1);
+      expect(tracker.nextTargetIndex).toBe(1);
+    });
   });
 });
