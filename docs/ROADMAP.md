@@ -23,7 +23,8 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Circuito visible por completo (cámara fija), cargado desde su JSON
 - ✅ Un `car.json` y un `track.json` de ejemplo (óvalo con isla interior)
 - ✅ Controles táctiles en pantalla (móvil/tablet sin teclado físico)
-- ✅ Menú de ajustes extensible (⚙️), con dificultad (afecta a la aceleración)
+- ✅ Menú de ajustes extensible (⚙️): dificultad (aceleración + velocidad
+  máxima, 3 niveles) y pantalla completa
 
 ## v0.2 — Circuito y reglas 🟨
 - ✅ Tilemap (por datos) con superficies (asfalto/hierba) que afectan al agarre

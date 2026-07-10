@@ -19,6 +19,11 @@
       #app {
         width: 100vw;
         height: 100vh;
+        /* En móvil la barra del navegador puede achicar el viewport visible
+           y "cortar" el juego; 100dvh (viewport dinámico) lo tiene en
+           cuenta donde el navegador lo soporta. La opción de pantalla
+           completa del menú de ajustes es la solución definitiva. */
+        height: 100dvh;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -151,6 +156,12 @@
         color: #fff;
         font-size: 16px;
       }
+      .settings-row {
+        margin-bottom: 16px;
+      }
+      .settings-row:last-child {
+        margin-bottom: 0;
+      }
       .settings-row__label {
         font-size: 13px;
         opacity: 0.8;
@@ -172,6 +183,10 @@
       .settings-option.is-selected {
         background: rgba(255, 204, 0, 0.4);
         border-color: #ffcc00;
+      }
+      .settings-option--wide {
+        width: 100%;
+        padding: 12px;
       }
 
       /* El circuito es panorámico (F3: se ve completo, sin scroll): en

@@ -1,5 +1,6 @@
 import { Settings, type GameSettings } from './Settings';
 import { DIFFICULTY_LEVELS, DIFFICULTY_PRESETS } from './difficulty';
+import { isFullscreenActive, isFullscreenSupported, toggleFullscreen } from './Fullscreen';
 
 /**
  * Menú de ajustes del jugador: un botón (⚙️) que abre un panel modal.
@@ -11,6 +12,7 @@ export class SettingsMenu {
   private readonly overlay: HTMLDivElement;
   private readonly panel: HTMLDivElement;
   private readonly unsubscribe: () => void;
+  private readonly onFullscreenChange = (): void => this.render();
   private _isOpen = false;
 
   constructor(parent: HTMLElement) {
@@ -36,6 +38,8 @@ export class SettingsMenu {
 
     this.render();
     this.unsubscribe = Settings.onChange(() => this.render());
+    document.addEventListener('fullscreenchange', this.onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this.onFullscreenChange);
   }
 
   get isOpen(): boolean {
@@ -54,6 +58,8 @@ export class SettingsMenu {
 
   destroy(): void {
     this.unsubscribe();
+    document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', this.onFullscreenChange);
     this.button.remove();
     this.overlay.remove();
   }
@@ -76,8 +82,35 @@ export class SettingsMenu {
     this.panel.appendChild(header);
 
     this.panel.appendChild(this.buildDifficultyRow(settings));
+    if (isFullscreenSupported()) {
+      this.panel.appendChild(this.buildFullscreenRow());
+    }
 
     // Futuros ajustes: añadir aquí más filas con this.panel.appendChild(...).
+  }
+
+  private buildFullscreenRow(): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+
+    const label = document.createElement('div');
+    label.className = 'settings-row__label';
+    label.textContent = 'Pantalla';
+    row.appendChild(label);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'settings-option settings-option--wide';
+    btn.textContent = isFullscreenActive() ? 'Salir de pantalla completa' : 'Pantalla completa';
+    btn.addEventListener('click', () => {
+      toggleFullscreen().catch(() => {
+        // Algunos navegadores (p. ej. Safari en iPhone) no soportan la
+        // Fullscreen API en elementos genéricos; no hay nada más que hacer.
+      });
+    });
+    row.appendChild(btn);
+
+    return row;
   }
 
   private buildDifficultyRow(settings: GameSettings): HTMLElement {
@@ -86,7 +119,7 @@ export class SettingsMenu {
 
     const label = document.createElement('div');
     label.className = 'settings-row__label';
-    label.textContent = 'Dificultad (aceleración)';
+    label.textContent = 'Dificultad (aceleración y velocidad)';
     row.appendChild(label);
 
     const options = document.createElement('div');

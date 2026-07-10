@@ -58,12 +58,21 @@ y versionado según [SemVer](https://semver.org/lang/es/).
 ### Added
 - Menú de ajustes del jugador (`src/settings/`): botón ⚙️ que abre un panel
   con el primer ajuste, **dificultad** (Fácil/Normal/Difícil), que escala la
-  potencia del motor del coche activo. Persiste en `localStorage` y se
-  aplica en caliente sin recargar. Pensado para crecer: añadir un ajuste
-  nuevo es una fila más en `SettingsMenu` y una clave más en `GameSettings`,
-  sin tocar el resto del juego — mismo principio que los datos de circuito/
-  coche (§3.7 de `ANALISIS.md`), pero para preferencias del jugador, no
-  para la definición del vehículo.
-- La dificultad "Normal" (por defecto) reduce la aceleración de fábrica
-  (900 → 630 de potencia efectiva) tras el primer feedback de que el coche
-  costaba de controlar; "Difícil" mantiene la potencia original del coche.
+  potencia del motor y la velocidad máxima del coche activo. Persiste en
+  `localStorage` y se aplica en caliente sin recargar. Pensado para crecer:
+  añadir un ajuste nuevo es una fila más en `SettingsMenu` y una clave más
+  en `GameSettings`, sin tocar el resto del juego — mismo principio que los
+  datos de circuito/coche (§3.7 de `ANALISIS.md`), pero para preferencias
+  del jugador, no para la definición del vehículo.
+- Opción de **pantalla completa** en el menú de ajustes (`src/settings/Fullscreen.ts`,
+  Fullscreen API nativa), para el caso en que la barra del navegador móvil
+  recorta la vista del juego. `#app` también usa `100dvh` (con fallback a
+  `100vh`) como mejora adicional sin necesidad de activar pantalla completa.
+
+### Changed
+- Recalibrada la dificultad tras seguir costando de controlar incluso en
+  "Fácil": ahora también reduce la **velocidad máxima** por nivel, no solo
+  la aceleración (el giro depende de la velocidad, así que bajarla también
+  ayuda a tomar curvas). "Difícil" mantiene siempre los valores originales
+  del coche (potencia 900, velocidad máx. 260); "Normal" (por defecto) baja
+  a ~585/195; "Fácil" a ~360/130.
