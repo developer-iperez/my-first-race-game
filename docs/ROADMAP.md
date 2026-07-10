@@ -26,11 +26,12 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Menú de ajustes extensible (⚙️): dificultad (aceleración + velocidad
   máxima, 3 niveles) y pantalla completa
 
-## v0.2 — Circuito y reglas 🟨
+## v0.2 — Circuito y reglas ✅
 - ✅ Tilemap (por datos) con superficies (asfalto/hierba) que afectan al agarre
 - ✅ Muros con colisión (rebote simple)
-- ⬜ Línea de meta, conteo de vueltas
-- ⬜ Cronómetro y mejor vuelta
+- ✅ Línea de meta, conteo de vueltas (exige pasar por los checkpoints en
+  orden, no vale con tocar la meta sin dar la vuelta)
+- ✅ Cronómetro y mejor vuelta (HUD en pantalla)
 
 ## v0.3 — Estética 90s ⬜
 - ⬜ Pixel art del coche y el circuito

@@ -76,3 +76,16 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   ayuda a tomar curvas). "Difícil" mantiene siempre los valores originales
   del coche (potencia 900, velocidad máx. 260); "Normal" (por defecto) baja
   a ~585/195; "Fácil" a ~360/130.
+
+### Added
+- **v0.2 completa**: línea de meta, conteo de vueltas y cronómetro.
+  - `src/race/LapTracker.ts`: máquina de estados pura que exige pasar por
+    los `waypoints` del circuito **en orden** para contar una vuelta —
+    tocar la línea de meta sin haber pasado por los checkpoints no cuenta,
+    evitando la trampa obvia de cortar el circuito. Cubierta con tests que
+    reprodujeron y confirmaron un bug real (contaba la vuelta al tocar el
+    último checkpoint en vez de al cruzar la meta).
+  - `src/race/formatTime.ts`: formato mm:ss.mmm.
+  - `src/race/RaceHud.ts`: HUD fijo a la cámara con vuelta actual,
+    cronómetro en marcha y mejor vuelta; aviso de "¡Meta!" al completar las
+    vueltas del circuito (`track.laps`).

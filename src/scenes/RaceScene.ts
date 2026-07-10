@@ -8,6 +8,8 @@ import { TouchControls } from '../input/TouchControls';
 import { SettingsMenu } from '../settings/SettingsMenu';
 import { Settings } from '../settings/Settings';
 import { applyDifficultyToPhysics } from '../settings/difficulty';
+import { LapTracker } from '../race/LapTracker';
+import { RaceHud } from '../race/RaceHud';
 import type { CarDefinition } from '../config/schema/car';
 import type { CarInput } from '../physics/carPhysics';
 import type { TrackDefinition } from '../config/schema/track';
@@ -29,6 +31,9 @@ export class RaceScene extends Phaser.Scene {
   private settingsMenu!: SettingsMenu;
   private carDefinition!: CarDefinition;
   private unsubscribeSettings?: () => void;
+  private lapTracker!: LapTracker;
+  private hud!: RaceHud;
+  private raceElapsedMs = 0;
 
   constructor() {
     super('Race');
@@ -53,6 +58,9 @@ export class RaceScene extends Phaser.Scene {
       vy: 0,
     });
     this.applyDifficulty();
+
+    this.lapTracker = new LapTracker(this.track.waypoints, this.track.laps, this.track.tileSize * 1.5);
+    this.hud = new RaceHud(this);
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -79,6 +87,8 @@ export class RaceScene extends Phaser.Scene {
   update(_time: number, deltaMs: number): void {
     if (this.settingsMenu.isOpen) return;
 
+    this.raceElapsedMs += deltaMs;
+
     const dt = deltaMs / 1000;
     const input = this.readInput();
     const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
@@ -93,6 +103,9 @@ export class RaceScene extends Phaser.Scene {
         vy: previous.vy * WALL_BOUNCE_DAMPING,
       });
     }
+
+    this.lapTracker.update(this.car.state.x, this.car.state.y, this.raceElapsedMs);
+    this.hud.update(this.lapTracker.getState(), this.raceElapsedMs - this.lapTracker.currentLapStartMs);
   }
 
   private readInput(): CarInput {
