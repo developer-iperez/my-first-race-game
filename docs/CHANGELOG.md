@@ -9,3 +9,7 @@ y versionado según [SemVer](https://semver.org/lang/es/).
 - Documentación inicial: análisis técnico y de gestión (`docs/ANALISIS.md`),
   roadmap (`docs/ROADMAP.md`) y andamiaje de gestión del proyecto
   (plantillas de issues).
+- Principio de **diseño orientado a datos** (requisitos A1/A2): circuitos y coches
+  definidos por JSON con esquema versionado, con borradores de esquema y su impacto
+  en la arquitectura, para permitir nuevos circuitos/vehículos a futuro (a mano o
+  con editor) sin tocar la lógica del juego.

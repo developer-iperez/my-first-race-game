@@ -20,6 +20,7 @@ noventera**, la recomendación es:
 | Motor / framework | **Phaser 3 + TypeScript** | Kaplay (más simple) / Vanilla Canvas (más didáctico) |
 | Build tooling | **Vite** | Parcel |
 | Físicas | **Modelo arcade propio** (aceleración, fricción, agarre lateral para derrapar) | Motor Arcade de Phaser para colisiones |
+| Circuitos y coches | **Definidos por datos (JSON)**, no hardcodeados; editor visual a futuro | Editor externo (p. ej. Tiled) que exporte JSON |
 | Gestión del proyecto | **GitHub Issues + Labels + Projects (tablero) + Milestones** y documentos vivos en `docs/` (`ROADMAP.md`, `CHANGELOG.md`) | Solo ficheros markdown si no se quiere depender de GitHub |
 | Ejecución en desarrollo | **`vite dev` en local** | — |
 | Publicación / hosting | **GitHub Pages** (vía GitHub Actions) | **itch.io** para distribución con comunidad gamer |
@@ -47,6 +48,14 @@ Traduzco tu descripción a requisitos concretos para poder decidir con criterio.
 - F4. Físicas **simples**.
 - F5. Un circuito jugable de principio a fin.
 
+**Arquitectónicos (deben cumplirse desde la v1 aunque su UI llegue después):**
+- A1. Los **circuitos** se definen por **datos** (JSON), no en código. La v1 puede
+  traer un único circuito, pero cargado desde su fichero de datos, de modo que
+  añadir otro sea crear un JSON nuevo (a mano o, en el futuro, con un editor).
+- A2. Los **coches/vehículos** siguen el mismo principio: su configuración
+  (peso, potencia, agarre, longitud, apariencia…) se define por **datos**, para
+  poder añadir vehículos nuevos sin tocar la lógica del juego.
+
 **No funcionales:**
 - NF1. **Estética 90s** (pixel art, paleta limitada, vista cenital tipo *Micro Machines* / *Super Cars* / *Ivan "Ironman" Stewart's Super Off Road*).
 - NF2. Prioridad absoluta: **jugabilidad y diversión** por encima de fidelidad.
@@ -54,7 +63,9 @@ Traduzco tu descripción a requisitos concretos para poder decidir con criterio.
 - NF4. El repositorio debe reflejar **estado, tareas pendientes y bugs**.
 
 **Fuera de alcance de la v1 (anotado para no perderlo):** IA de rivales, multijugador,
-múltiples circuitos, daños al coche, scroll de cámara, guardado de tiempos online.
+daños al coche, scroll de cámara, guardado de tiempos online, **editor visual** de
+circuitos/coches y **selector** de múltiples circuitos/vehículos. Ojo: la v1 solo
+trae *un* circuito y *un* coche, pero ya **cargados desde datos (JSON)** — ver A1/A2.
 
 ---
 
@@ -185,6 +196,113 @@ donde se gana la diversión. Este bloque es el candidato ideal para tests con Vi
 - Audio chiptune/8-bit y efectos cortos (motor, derrape, checkpoint). Usar assets
   con licencia libre (OpenGameArt, Kenney) hasta tener arte propio.
 
+### 3.7 Diseño orientado a datos: circuitos y coches definidos por JSON (requisitos A1, A2)
+
+Requisito clave: que **circuitos y vehículos sean genéricos y definidos por datos**,
+no incrustados en el código. Así, añadir un circuito o un coche nuevo es **crear/editar
+un fichero**, primero a mano en JSON y, en el futuro, con un **editor visual**. Este
+principio se adopta **desde la v1** (aunque haya un solo circuito y un solo coche),
+porque condiciona la arquitectura y es carísimo de retro-encajar más tarde.
+
+**Regla de oro:** la lógica del juego (render, físicas, reglas) **no conoce** ningún
+circuito ni coche concreto; solo sabe **interpretar el esquema de datos**. Los
+circuitos y coches viven como **assets** (`public/tracks/*.json`,
+`public/cars/*.json`), no como código.
+
+Beneficios:
+- Nuevos circuitos/coches **sin recompilar la lógica** ni arriesgar regresiones.
+- **Modding** trivial: cualquiera puede aportar un JSON.
+- El **editor visual** futuro solo tiene que producir el mismo JSON → desacoplado del juego.
+- Los datos son **testeables y validables** (esquema) de forma independiente.
+
+**Contrato de datos (versión y validación).** Cada fichero lleva un campo
+`schemaVersion`. Al cargar, se **valida contra un esquema** (p. ej. JSON Schema con
+Zod/Ajv) para dar errores claros si un circuito hecho a mano está mal formado. El
+esquema es el punto de acoplamiento estable entre juego, ficheros a mano y editor.
+
+**Esquema de circuito (borrador ilustrativo).** Conviene separar la *geometría
+jugable* (independiente de gráficos) de la *presentación*:
+
+```jsonc
+// public/tracks/rally-01.json
+{
+  "schemaVersion": 1,
+  "id": "rally-01",
+  "name": "Bosque Bravo",
+  "size": { "width": 384, "height": 216 },   // el mapa cabe entero en pantalla (F3)
+  "tileSize": 16,
+  "surfaces": {                                // catálogo de superficies -> agarre
+    "asphalt": { "grip": 1.0,  "drag": 1.00 },
+    "grass":   { "grip": 0.6,  "drag": 1.06 },
+    "sand":    { "grip": 0.75, "drag": 1.10 }
+  },
+  "layers": {
+    "surface": [[0,0,1,1, "..."]],            // rejilla de índices de superficie (tilemap)
+    "walls":   [[0,1,0, "..."]]               // colisión
+  },
+  "spawn":   { "x": 120, "y": 180, "angle": 0 },
+  "waypoints": [                               // centro de pista: meta, checkpoints, dirección
+    { "x": 120, "y": 180, "type": "start_finish" },
+    { "x": 300, "y": 60,  "type": "checkpoint" }
+  ],
+  "laps": 3,
+  "theme": "forest"                            // pista de estilo para tileset/paleta
+}
+```
+
+> Nota práctica: el editor de mapas **Tiled** exporta JSON de tilemaps y encaja de
+> forma natural con esto; puede ser el "editor a futuro" sin construir nada, y su
+> salida se adapta a nuestro esquema con un pequeño importador.
+
+**Esquema de coche/vehículo (borrador ilustrativo).** Recoge exactamente los ejes
+que mencionas —peso, potencia, longitud, apariencia— traducidos a parámetros del
+modelo arcade de la sección 3.4:
+
+```jsonc
+// public/cars/rally-hatch.json
+{
+  "schemaVersion": 1,
+  "id": "rally-hatch",
+  "name": "Rally Hatch",
+  "physics": {
+    "mass": 1.0,            // "peso": afecta a inercia/aceleración efectiva
+    "enginePower": 900,     // "potencia": fuerza de aceleración
+    "brakingPower": 1200,
+    "maxSpeed": 260,
+    "turnRate": 3.2,        // rad/s de giro a velocidad de referencia
+    "gripForward": 0.98,    // fricción longitudinal (sección 3.4)
+    "gripLateral": 0.90,    // agarre lateral: menor = derrapa más
+    "handbrakeGrip": 0.98,  // agarre lateral con freno de mano
+    "length": 24,           // "longitud": batalla; afecta al radio de giro/feel
+    "width": 12
+  },
+  "appearance": {           // "apariencia": desacoplada de la física
+    "sprite": "cars/rally-hatch.png",
+    "wheelbaseOffset": 6,
+    "skidColor": "#333333"
+  }
+}
+```
+
+**Impacto en la arquitectura (carpetas ya previstas en 3.3):**
+- `src/config/schema/` — definición y validación de esquemas (`track.ts`, `car.ts`).
+- `src/entities/Car.ts` — se construye **a partir de** un `CarConfig` cargado, sin
+  constantes propias; los números viven en el JSON.
+- `src/track/TrackLoader.ts` — carga y valida un `TrackDefinition` y monta el tilemap,
+  colisiones y waypoints desde datos.
+- `public/tracks/`, `public/cars/` — los ficheros de datos como assets.
+
+**Alcance por versiones (evita sobre-ingeniería):**
+- **v1:** un circuito y un coche, **pero cargados desde su JSON** con esquema
+  `schemaVersion: 1` y validación básica. Nada de editor todavía.
+- **Futuro:** varios ficheros + selector de coche/circuito; luego **editor** (propio
+  o vía Tiled) que produce el mismo JSON. Como el juego ya lee datos, no hay que
+  reescribir la lógica.
+
+> Coste de adoptarlo ya: **bajo** (definir dos esquemas y un cargador). Coste de
+> añadirlo después: **alto** (reescribir entidades y circuito). Por eso es A1/A2,
+> requisito desde el día uno aunque su interfaz de usuario llegue mucho más tarde.
+
 ---
 
 ## 4. ¿Cómo gestionar la evolución del proyecto desde el repositorio?
@@ -279,6 +397,7 @@ servidor propio ni base de datos: es un juego 100% cliente.
 | Rendimiento en móvil | Bajo/Medio | Resolución interna baja + pixel art ligero; Canvas/WebGL de Phaser sobra |
 | Assets con licencia dudosa | Medio (legal) | Usar solo assets libres (Kenney, OpenGameArt) o propios; anotar créditos |
 | Perder el hilo del estado | Medio | Tablero + milestones + CHANGELOG desde el día 1 |
+| Esquema de datos que se queda corto (circuitos/coches) | Medio | `schemaVersion` desde v1 + validación; empezar minimalista y ampliar con versión de esquema |
 
 ---
 
@@ -286,9 +405,10 @@ servidor propio ni base de datos: es un juego 100% cliente.
 
 - **v0.1 — Prototipo jugable (el "juego" mínimo):** un coche que acelera, frena, gira
   y **derrapa** sobre un circuito visible completo. Sin arte final. Objetivo: que
-  *conducir sea divertido*.
-- **v0.2 — Circuito y reglas:** tilemap con superficies (asfalto/hierba), muros con
-  colisión, meta, **cronómetro y mejor vuelta**.
+  *conducir sea divertido*. **El coche y el circuito ya se cargan desde JSON con
+  esquema** (A1/A2), aunque solo haya uno de cada.
+- **v0.2 — Circuito y reglas:** tilemap (cargado por datos) con superficies
+  (asfalto/hierba), muros con colisión, meta, **cronómetro y mejor vuelta**.
 - **v0.3 — Estética 90s:** pixel art del coche y el circuito, HUD retro, audio.
 - **v0.4 — Pulido y feel:** partículas de derrape, sonido de motor, tuning fino.
 - **v1.0 — Primera versión completa:** un circuito redondo y divertido, publicado en
@@ -311,6 +431,10 @@ Cada fase = un **milestone** en GitHub con sus issues.
    **CI/CD con Actions** para validar y desplegar. Fuente única de verdad: Issues.
 5. **Ejecución:** `vite dev` en local; publicación en **GitHub Pages** (principal) e
    **itch.io** (distribución). Sin backend: juego 100% cliente, coste cero.
+6. **Genérico por datos (A1/A2):** circuitos y coches se definen en **JSON con
+   esquema versionado**, no en código. La lógica solo interpreta el esquema; añadir
+   un circuito o vehículo = crear un fichero (a mano o, a futuro, con editor/Tiled).
+   Se adopta **desde la v1** porque es barato ahora y caro de retro-encajar después.
 
 **Siguiente paso recomendado:** montar el esqueleto del proyecto (Vite + Phaser +
 TS), crear el milestone `v0.1` y su primer issue ("coche que acelera/frena/gira/derrapa
