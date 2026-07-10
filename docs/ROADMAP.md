@@ -38,7 +38,7 @@ Que *conducir sea divertido* aunque no haya arte final.
 ## v0.3 — Estética 90s 🟨
 - ✅ Pixel art del coche y el circuito (sprites generados: coche, asfalto,
   hierba, arena, muro a rayas)
-- ⬜ HUD retro
+- ✅ HUD retro (marcador con marco pixelado estilo arcade, iconos por línea)
 - ⬜ Audio (motor, derrape, checkpoint)
 
 ## v0.4 — Pulido y feel ⬜

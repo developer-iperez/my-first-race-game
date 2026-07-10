@@ -171,3 +171,10 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   - `TrackRenderer`: cada celda del tilemap se pinta con la imagen de su
     superficie (o la de muro si `walls[fila][col] === 1`); los marcadores
     de meta/checkpoints se dibujan por encima con Graphics, sin cambios.
+- **HUD retro**: `RaceHud` gana un marco pixelado estilo marcador arcade
+  (panel oscuro + borde de 2px, ajustado en cada `update()` al tamaño real
+  del texto) en vez del `backgroundColor` plano de Phaser Text. Cada línea
+  lleva un icono (🏁 vuelta, ⏱ cronómetro, 🏆 mejor vuelta) para
+  diferenciarlas de un vistazo. El panel de "¡META!" usa borde rojo y el
+  botón de reinicio pasa a `► VOLVER A EMPEZAR ◄`, más en línea con un
+  marcador de máquina recreativa.
