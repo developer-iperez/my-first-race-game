@@ -5,6 +5,10 @@ import { getSurfaceGripAt, isWallAt } from '../track/TrackQuery';
 import { CarLoader } from '../entities/CarLoader';
 import { Car } from '../entities/Car';
 import { TouchControls } from '../input/TouchControls';
+import { SettingsMenu } from '../settings/SettingsMenu';
+import { Settings } from '../settings/Settings';
+import { applyDifficultyToPhysics } from '../settings/difficulty';
+import type { CarDefinition } from '../config/schema/car';
 import type { CarInput } from '../physics/carPhysics';
 import type { TrackDefinition } from '../config/schema/track';
 
@@ -22,6 +26,9 @@ export class RaceScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private handbrakeKey!: Phaser.Input.Keyboard.Key;
   private touchControls!: TouchControls;
+  private settingsMenu!: SettingsMenu;
+  private carDefinition!: CarDefinition;
+  private unsubscribeSettings?: () => void;
 
   constructor() {
     super('Race');
@@ -29,7 +36,7 @@ export class RaceScene extends Phaser.Scene {
 
   create(data: RaceSceneData): void {
     this.track = TrackLoader.get(this, data.trackKey);
-    const carDefinition = CarLoader.get(this, data.carKey);
+    this.carDefinition = CarLoader.get(this, data.carKey);
 
     renderTrack(this, this.track);
 
@@ -38,13 +45,14 @@ export class RaceScene extends Phaser.Scene {
     this.cameras.main.centerOn(this.track.size.width / 2, this.track.size.height / 2);
 
     const spawnAngleRad = Phaser.Math.DegToRad(this.track.spawn.angle);
-    this.car = new Car(this, carDefinition, {
+    this.car = new Car(this, this.carDefinition, {
       x: this.track.spawn.x,
       y: this.track.spawn.y,
       angle: spawnAngleRad,
       vx: 0,
       vy: 0,
     });
+    this.applyDifficulty();
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -53,10 +61,24 @@ export class RaceScene extends Phaser.Scene {
     // como DOM aparte de Phaser (multi-touch real) y se combinan con el
     // teclado en readInput(), así que ambos funcionan a la vez.
     this.touchControls = new TouchControls(document.body);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.touchControls.destroy());
+    this.settingsMenu = new SettingsMenu(document.body);
+    this.unsubscribeSettings = Settings.onChange(() => this.applyDifficulty());
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.touchControls.destroy();
+      this.settingsMenu.destroy();
+      this.unsubscribeSettings?.();
+    });
+  }
+
+  private applyDifficulty(): void {
+    const { difficulty } = Settings.get();
+    this.car.setPhysics(applyDifficultyToPhysics(this.carDefinition.physics, difficulty));
   }
 
   update(_time: number, deltaMs: number): void {
+    if (this.settingsMenu.isOpen) return;
+
     const dt = deltaMs / 1000;
     const input = this.readInput();
     const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);

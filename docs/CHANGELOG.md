@@ -54,3 +54,16 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   inicialización de Phaser, cualquier excepción no capturada), se muestra un
   aviso legible en la propia pantalla en vez de dejarla en blanco —
   imprescindible para depurar en un móvil sin herramientas de desarrollador.
+
+### Added
+- Menú de ajustes del jugador (`src/settings/`): botón ⚙️ que abre un panel
+  con el primer ajuste, **dificultad** (Fácil/Normal/Difícil), que escala la
+  potencia del motor del coche activo. Persiste en `localStorage` y se
+  aplica en caliente sin recargar. Pensado para crecer: añadir un ajuste
+  nuevo es una fila más en `SettingsMenu` y una clave más en `GameSettings`,
+  sin tocar el resto del juego — mismo principio que los datos de circuito/
+  coche (§3.7 de `ANALISIS.md`), pero para preferencias del jugador, no
+  para la definición del vehículo.
+- La dificultad "Normal" (por defecto) reduce la aceleración de fábrica
+  (900 → 630 de potencia efectiva) tras el primer feedback de que el coche
+  costaba de controlar; "Difícil" mantiene la potencia original del coche.

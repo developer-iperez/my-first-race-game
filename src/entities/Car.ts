@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { CarDefinition } from '../config/schema/car';
+import type { CarDefinition, CarPhysicsConfig } from '../config/schema/car';
 import { stepCarPhysics, isSkidding, type CarInput, type CarState } from '../physics/carPhysics';
 
 /**
@@ -18,9 +18,12 @@ export class Car {
   private readonly graphics: Phaser.GameObjects.Container;
   private readonly body: Phaser.GameObjects.Rectangle;
   private readonly nose: Phaser.GameObjects.Rectangle;
+  /** Físicas efectivas usadas en la simulación: definition.physics + ajustes del jugador (dificultad). */
+  private physics: CarPhysicsConfig;
 
   constructor(scene: Phaser.Scene, definition: CarDefinition, spawn: CarState) {
     this.definition = definition;
+    this.physics = definition.physics;
     this.state = { ...spawn };
 
     const { length, width } = definition.physics;
@@ -30,8 +33,13 @@ export class Car {
     this.graphics.setRotation(spawn.angle);
   }
 
+  /** Sustituye las físicas efectivas (p. ej. tras aplicar la dificultad elegida). */
+  setPhysics(physics: CarPhysicsConfig): void {
+    this.physics = physics;
+  }
+
   update(dt: number, input: CarInput, surfaceGrip = 1): void {
-    this.setState(stepCarPhysics(this.state, input, this.definition.physics, dt, surfaceGrip));
+    this.setState(stepCarPhysics(this.state, input, this.physics, dt, surfaceGrip));
   }
 
   /** Fija el estado físico y sincroniza el render (p. ej. tras resolver una colisión). */
