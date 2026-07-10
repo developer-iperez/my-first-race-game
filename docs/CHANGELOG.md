@@ -34,3 +34,17 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   (acelerar y girar a la vez con dedos distintos), combinados con el teclado.
   Aviso de "gira el dispositivo" en vertical, ya que el circuito es panorámico
   (F3, se ve completo sin scroll) y en vertical el canvas queda muy pequeño.
+
+### Changed
+- Renderer de Phaser: de `Phaser.AUTO` (WebGL con fallback a Canvas) a
+  `Phaser.CANVAS` explícito. El juego solo dibuja formas simples (sin
+  shaders), así que no aporta nada usar WebGL y sí puede fallar en
+  navegadores/GPUs móviles menos habituales — con Canvas 2D se evita esa
+  categoría entera de fallos silenciosos ("no se ve el juego" sin ningún
+  error visible).
+
+### Added (debug)
+- `src/debug/errorOverlay.ts`: si algo falla al arrancar (carga de datos,
+  inicialización de Phaser, cualquier excepción no capturada), se muestra un
+  aviso legible en la propia pantalla en vez de dejarla en blanco —
+  imprescindible para depurar en un móvil sin herramientas de desarrollador.
