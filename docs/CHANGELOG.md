@@ -234,3 +234,32 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   3 tests nuevos que reproducen el bucle a `dt` real de 60fps (en vez de
   un solo salto grande) para que esta clase de regresión no vuelva a
   colarse silenciosamente.
+
+### Changed
+- Feedback tras probar el derrape en el móvil: seguía sintiéndose "soso".
+  El ratio lateral en régimen estacionario ya estaba tocando el suelo de
+  agarre (`MIN_LATERAL_GRIP`, 0.08) en curva cerrada a velocidad, así que
+  subir más `CORNERING_GRIP_LOSS` no tenía ya ningún efecto — bajado el
+  suelo a 0.05, lo que sube el ángulo de derrape en curva cerrada de
+  ~28° a ~41° (validado por simulación); el giro suave y las maniobras a
+  baja velocidad no lo tocan (el suelo solo se alcanza con mucho volante
+  y mucha velocidad a la vez), así que la maniobrabilidad se mantiene.
+
+### Fixed
+- Feedback: "el coche va a veces a tirones" y "el área de fuera de la
+  carretera no debería parar en seco". Ambos venían de lo mismo: al
+  tocar un muro, `RaceScene` revertía la posición al frame anterior *y*
+  invertía la velocidad (rebote), un frenazo brusco que además, al
+  rozar un muro varias veces seguidas (más fácil ahora que el coche
+  desliza más), producía un parpadeo de ida-y-vuelta en la posición
+  (los tirones). Sustituido por fricción fuerte sin frenazo ni rebote:
+  al pisar zona de muro/fuera de mapa, la posición sigue avanzando con
+  normalidad y solo se aplica un decaimiento agresivo a la velocidad
+  (`OFFTRACK_GRIP_RETENTION` en `RaceScene.ts`, misma matemática de
+  "retención por frame" que ya usaba el modelo de físicas, ahora
+  exportada como `frameRateIndependentDecay`), así que cuesta mucho
+  mantener velocidad fuera de pista pero el coche no se queda clavado
+  ni rebota — es fácil corregir el rumbo y volver al trazado. Verificado
+  en directo forzando el coche sobre un tile de muro y comprobando que
+  la posición avanza frame a frame sin saltos mientras la velocidad cae
+  de golpe (de 195 a ~16 en unos 320ms).

@@ -46,6 +46,8 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Partículas de derrape (humo/polvo tras el coche mientras derrapa)
 - ✅ Derrape más espectacular en curvas cerradas a velocidad, manteniendo
   la maniobrabilidad (giro suave/lento intacto, se puede contravolantear)
+- ✅ Salirse de pista ya no para el coche en seco: fricción fuerte pero
+  el coche sigue moviéndose, más fácil recuperar el trazado
 
 ## v1.0 — Primera versión completa ⬜
 - ⬜ Un circuito redondo y divertido

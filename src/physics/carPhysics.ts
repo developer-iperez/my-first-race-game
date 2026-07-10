@@ -45,13 +45,15 @@ const clamp = (value: number, min: number, max: number): number =>
  */
 const CORNERING_GRIP_LOSS = 0.85;
 /** Agarre lateral mínimo garantizado, para que nunca se vuelva un patinazo sin control. */
-const MIN_LATERAL_GRIP = 0.08;
+const MIN_LATERAL_GRIP = 0.05;
 
 /**
  * Aplica un factor de "agarre/fricción por frame a 60fps" de forma
- * independiente del framerate real, usando dt en segundos.
+ * independiente del framerate real, usando dt en segundos. Se exporta para
+ * que otros efectos de fricción (p.ej. frenado fuerte al salirse de pista
+ * en RaceScene) usen la misma matemática en vez de reinventarla.
  */
-function frameRateIndependentDecay(perFrameFactor: number, dt: number): number {
+export function frameRateIndependentDecay(perFrameFactor: number, dt: number): number {
   return Math.pow(perFrameFactor, dt * 60);
 }
 

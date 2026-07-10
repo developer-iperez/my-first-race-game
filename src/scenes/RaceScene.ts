@@ -14,7 +14,7 @@ import { NextTargetIndicator } from '../race/NextTargetIndicator';
 import { RaceAudio } from '../race/RaceAudio';
 import { SkidParticles } from '../race/SkidParticles';
 import type { CarDefinition } from '../config/schema/car';
-import type { CarInput } from '../physics/carPhysics';
+import { frameRateIndependentDecay, type CarInput } from '../physics/carPhysics';
 import type { TrackDefinition } from '../config/schema/track';
 
 interface RaceSceneData {
@@ -22,8 +22,14 @@ interface RaceSceneData {
   carKey: string;
 }
 
-/** Rebote simple al chocar contra un muro: frena y empuja hacia atrás. */
-const WALL_BOUNCE_DAMPING = -0.3;
+/**
+ * Fricción fuerte al salirse de pista (muro/fuera de mapa): NO paramos en
+ * seco ni rebotamos — el coche sigue moviéndose, solo que cuesta mucho
+ * mantener velocidad, así es fácil corregir y volver al trazado sin sentir
+ * un choque. Retención por frame a 60fps: con 0.9, en ~0.2s se pierde
+ * la mayoría de la velocidad.
+ */
+const OFFTRACK_GRIP_RETENTION = 0.9;
 
 export class RaceScene extends Phaser.Scene {
   private track!: TrackDefinition;
@@ -132,14 +138,14 @@ export class RaceScene extends Phaser.Scene {
       const input = this.readInput();
       const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
 
-      const previous = { ...this.car.state };
       this.car.update(dt, input, surfaceGrip);
 
       if (isWallAt(this.track, this.car.state.x, this.car.state.y)) {
+        const offtrackDecay = frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt);
         this.car.setState({
-          ...previous,
-          vx: previous.vx * WALL_BOUNCE_DAMPING,
-          vy: previous.vy * WALL_BOUNCE_DAMPING,
+          ...this.car.state,
+          vx: this.car.state.vx * offtrackDecay,
+          vy: this.car.state.vy * offtrackDecay,
         });
       }
 
