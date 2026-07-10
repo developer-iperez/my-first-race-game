@@ -12,6 +12,7 @@ Leyenda: ⬜ pendiente · 🟨 en curso · ✅ hecho
 - ✅ **A2 — Coches definidos por datos (JSON)**: peso, potencia, agarre, longitud y
   apariencia en `public/cars/*.json`; añadir vehículos = crear un fichero.
 - ⬜ Editor visual (propio o vía Tiled) y selector multi-circuito/coche: **a futuro**.
+- ✅ CI/CD activo: cada push a esta rama se despliega y prueba en GitHub Pages.
 
 ## v0.1 — Prototipo jugable ✅
 Que *conducir sea divertido* aunque no haya arte final.
@@ -21,6 +22,7 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Derrape (modelo de agarre longitudinal vs lateral, con freno de mano)
 - ✅ Circuito visible por completo (cámara fija), cargado desde su JSON
 - ✅ Un `car.json` y un `track.json` de ejemplo (óvalo con isla interior)
+- ✅ Controles táctiles en pantalla (móvil/tablet sin teclado físico)
 
 ## v0.2 — Circuito y reglas 🟨
 - ✅ Tilemap (por datos) con superficies (asfalto/hierba) que afectan al agarre
