@@ -35,6 +35,12 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   Aviso de "gira el dispositivo" en vertical, ya que el circuito es panorámico
   (F3, se ve completo sin scroll) y en vertical el canvas queda muy pequeño.
 
+### Fixed
+- El juego no se veía en Chrome para Android (solo se veían los controles
+  táctiles, canvas en blanco, sin errores visibles): causado por WebGL vía
+  `Phaser.AUTO`. Confirmado y resuelto con el cambio a `Phaser.CANVAS` de
+  más abajo.
+
 ### Changed
 - Renderer de Phaser: de `Phaser.AUTO` (WebGL con fallback a Canvas) a
   `Phaser.CANVAS` explícito. El juego solo dibuja formas simples (sin
