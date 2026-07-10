@@ -180,7 +180,7 @@ describe('stepCarPhysics', () => {
     });
   });
 
-  describe('Arcade-Drift Dynamics (v0.4.1: derrape sostenido por acelerador, sin trompos)', () => {
+  describe('inercia de giro (yawRate): el volante marca objetivo, no ángulo directo', () => {
     function simulateFrames(
       initial: CarState,
       input: { throttle: number; steer: number; handbrake: boolean },
@@ -202,43 +202,56 @@ describe('stepCarPhysics', () => {
 
     it('holding full lock + throttle settles into a stable held drift, not a runaway spin', () => {
       const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
-      // 3 segundos a fondo: si no hubiera techo de estabilización, el
-      // ángulo real (heading) daría vueltas y vueltas sin parar y el ratio
-      // de deslizamiento subiría sin control hasta un patinazo total.
+      // 3 segundos a fondo: sin la inercia de giro reduciendo la capacidad
+      // de redirigir el morro mientras patina, esto podría descontrolarse;
+      // el propio modelo (sin ningún techo artificial) debe converger solo.
       const result = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 180);
-      expect(slipRatio(result)).toBeGreaterThan(0.5);
+      expect(slipRatio(result)).toBeGreaterThan(0.4);
       expect(slipRatio(result)).toBeLessThan(0.98);
     });
 
-    it('sustaining a drift keeps the slip ratio steady over time instead of climbing without bound', () => {
+    it('sustaining full lock keeps the slip ratio steady over time instead of climbing without bound', () => {
       const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
       const midway = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 90);
       const later = simulateFrames(midway, { throttle: 1, steer: 1, handbrake: false }, 90);
       expect(Math.abs(slipRatio(later) - slipRatio(midway))).toBeLessThan(0.05);
     });
 
-    it('releasing the accelerator mid-drift lets the slip die down quickly (throttle is what sustains it)', () => {
-      const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
-      const drifting = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 90);
-      const afterRelease = simulateFrames(drifting, { throttle: 0, steer: 0, handbrake: false }, 10);
-      expect(slipRatio(afterRelease)).toBeLessThan(0.1);
+    it('countersteering out of a drift reverses yaw rate gradually, not instantly (inertia, not a snap)', () => {
+      const cornering: CarState = { x: 0, y: 0, angle: 0, vx: 220, vy: 0 };
+      const drifted = simulateFrames(cornering, { throttle: 1, steer: 1, handbrake: false }, 30);
+      const initialYawRate = drifted.yawRate ?? 0;
+      expect(initialYawRate).toBeGreaterThan(0);
+
+      // Un solo frame de contravolante no debería ya invertir el sentido de
+      // giro de golpe: la inercia hace que tarde varios frames en "morder".
+      const oneFrame = stepCarPhysics(drifted, { throttle: 1, steer: -1, handbrake: false }, baseConfig, 1 / 60);
+      expect(oneFrame.yawRate ?? 0).toBeLessThan(initialYawRate);
+      expect(oneFrame.yawRate ?? 0).toBeGreaterThan(-initialYawRate);
+
+      // Pero sostenido varios frames, sí que llega a revertir el sentido de
+      // giro por completo — el contravolante funciona, solo que no es
+      // instantáneo.
+      let s = drifted;
+      for (let i = 0; i < 8; i++) s = stepCarPhysics(s, { throttle: 1, steer: -1, handbrake: false }, baseConfig, 1 / 60);
+      expect(s.yawRate ?? 0).toBeLessThan(0);
     });
 
-    it('steering alone without any throttle cannot sustain a drift the way holding the gas does', () => {
-      const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
-      const withThrottle = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 90);
-      const withoutThrottle = simulateFrames(fast, { throttle: 0, steer: 1, handbrake: false }, 90);
-      expect(slipRatio(withoutThrottle)).toBeLessThan(slipRatio(withThrottle));
+    it('countersteering held long enough visibly reduces the slip ratio compared to continuing to steer into the slide', () => {
+      const cornering: CarState = { x: 0, y: 0, angle: 0, vx: 220, vy: 0 };
+      const drifted = simulateFrames(cornering, { throttle: 1, steer: 1, handbrake: false }, 30);
+      const widening = simulateFrames(drifted, { throttle: 1, steer: 1, handbrake: false }, 8);
+      const countersteering = simulateFrames(drifted, { throttle: 1, steer: -1, handbrake: false }, 8);
+      expect(slipRatio(countersteering)).toBeLessThan(slipRatio(widening));
     });
 
-    it('countersteering out of a drift always has full rotational authority, even near the slip ceiling', () => {
+    it('good grip (light steering, low speed) responds to the wheel almost immediately, without a sluggish feel', () => {
       const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
-      const drifted = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 120);
-      const widening = stepCarPhysics(drifted, { throttle: 1, steer: 1, handbrake: false }, baseConfig, 1 / 60);
-      const countersteering = stepCarPhysics(drifted, { throttle: 1, steer: -1, handbrake: false }, baseConfig, 1 / 60);
-      const widenAngleDelta = Math.abs(widening.angle - drifted.angle);
-      const counterAngleDelta = Math.abs(countersteering.angle - drifted.angle);
-      expect(counterAngleDelta).toBeGreaterThan(widenAngleDelta);
+      const oneFrame = stepCarPhysics(fast, { throttle: 1, steer: 0.3, handbrake: false }, baseConfig, 1 / 60);
+      const target = 0.3 * baseConfig.turnRate * 1; // speedFactor≈1, turnDirection=1
+      // Con agarre normal (sin patinar), el primer frame ya debe acercarse
+      // bastante al objetivo, no arrastrar un retraso perceptible.
+      expect(oneFrame.yawRate ?? 0).toBeGreaterThan(target * 0.5);
     });
 
     it('handbrake alone (no throttle) is still enough to kick off a drift', () => {

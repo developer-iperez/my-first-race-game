@@ -1,16 +1,19 @@
 import type { CarPhysicsConfig } from '../config/schema/car';
 
 /**
- * Modelo de físicas arcade (no realista) descrito en docs/ANALISIS.md §3.4,
- * ampliado en v0.4 con "Arcade-Drift Dynamics": física asistida, no
- * simulación de neumáticos — el objetivo es que el jugador pueda "surfear"
- * la carretera y sostener un derrape con el acelerador, no que las fuerzas
- * sean realistas.
+ * Modelo de físicas arcade (no realista) descrito en docs/ANALISIS.md §3.4.
  *
  * La idea clave del derrape: la velocidad se descompone en una componente
  * hacia delante (agarre alto = "sobre raíles") y una componente lateral
  * (agarre bajo = desliza). Bajar el agarre lateral -especialmente con el
  * freno de mano- es lo que provoca el derrape.
+ *
+ * El giro tiene inercia real (CarState.yawRate): el volante no fija el
+ * ángulo del coche de golpe cada frame, marca hacia dónde debería girar y
+ * la velocidad angular se acerca a eso con un poco de retraso — sobre
+ * todo mientras el coche patina. Esto es lo que hace que el contravolante
+ * se note "de verdad": hay una rotación en marcha que hay que frenar y
+ * revertir, no un valor que salta directo al nuevo input cada frame.
  *
  * Es una función pura: mismo estado + mismo input + mismo dt = mismo
  * resultado. Eso la hace fácil de testear y de tunear jugando, sin montar
@@ -25,14 +28,13 @@ export interface CarState {
   vx: number;
   vy: number;
   /**
-   * "Memoria" de derrape (0 = agarre normal .. 1 = derrape a fondo),
-   * suavizada frame a frame en vez de recalculada de golpe cada vez:
-   * sube rápido al pedir un derrape (input-driven, respuesta instantánea)
-   * pero baja despacio al soltar volante/gas (assisted-correction, evita
-   * el "efecto látigo" al recuperar agarre). Opcional: si no se pasa, se
-   * asume 0 (coche recién creado, sin derrape en marcha).
+   * Velocidad angular actual (rad/s). Con inercia: se acerca al objetivo
+   * marcado por el volante en vez de igualarlo de golpe cada frame (ver
+   * YAW_CATCH_UP_RATE). Opcional: si no se pasa, se asume igual al
+   * objetivo instantáneo (coche recién creado, sin inercia de giro previa
+   * que arrastrar).
    */
-  driftIntensity?: number;
+  yawRate?: number;
 }
 
 export interface CarInput {
@@ -49,73 +51,36 @@ export type SurfaceGrip = number;
 const clamp = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, value));
 
-/** Normaliza un ángulo en radianes al rango (-π, π]. */
-const normalizeAngle = (radians: number): number => Math.atan2(Math.sin(radians), Math.cos(radians));
-
 /**
  * Cuánto agarre lateral como máximo se resta al girar fuerte a alta
- * velocidad. Con el volante a fondo y a velocidad máxima se llega a perder
- * esta fracción de agarre; girando suave o a baja velocidad casi no
- * afecta, así que las maniobras lentas y precisas (aparcar, esquivar) no
- * se ven penalizadas.
+ * velocidad (más derrape en curvas cerradas tomadas rápido). Con el
+ * volante a fondo y a velocidad máxima se llega a perder esta fracción de
+ * agarre; girando suave o a baja velocidad casi no afecta, así que las
+ * maniobras lentas y precisas (aparcar, esquivar) no se ven penalizadas.
  */
-const CORNERING_GRIP_LOSS = 0.95;
+const CORNERING_GRIP_LOSS = 0.9;
 /** Agarre lateral mínimo garantizado, para que nunca se vuelva un patinazo sin control. */
-const MIN_LATERAL_GRIP = 0.02;
+const MIN_LATERAL_GRIP = 0.03;
 
 /**
- * "Drift_Threshold": a partir de qué proporción de deslizamiento lateral
- * (lateral/total) se considera que el coche está oficialmente "en
- * derrape" y se activan las asistencias (sostenido con el gas, impulso de
- * giro extra). Coincide con el umbral por defecto de isSkidding, para que
- * partículas/sonido/asistencias se enciendan a la vez.
+ * Fracción del hueco entre la velocidad angular actual y la que pide el
+ * volante que se cierra cada frame a 60fps CUANDO EL COCHE TIENE BUEN
+ * AGARRE (yendo derecho, sin patinar): 1 = respuesta instantánea al
+ * volante (como conducir normal, sin inercia perceptible). No es un techo
+ * ni un bloqueo — es cuánto "pesa" girar el morro.
  */
-const DRIFT_THRESHOLD = 0.35;
-
+const YAW_CATCH_UP_RATE = 0.65;
 /**
- * "Grip_Recovery_Rate": retención por frame (a 60fps) de la memoria de
- * derrape mientras BAJA (soltando volante/gas). Alta = recuperación lenta
- * y progresiva ("efecto látigo" evitado); si fuera 0 el agarre volvería
- * de golpe en cuanto se suelta el volante.
+ * Cuánto reduce el agarre lateral bajo (coche ya patinando) esa misma
+ * capacidad de cambiar de velocidad angular: a más derrape, más cuesta
+ * redirigir el morro — como recoger un derrape de verdad, hace falta
+ * sostener el volante un momento para que "muerda", en vez de saltar al
+ * instante. Se aplica igual entrando o saliendo del derrape (contravolante
+ * incluido): no hay ningún caso especial, solo inercia continua.
  */
-const GRIP_RECOVERY_RATE = 0.85;
-/**
- * Retención por frame mientras la memoria de derrape SUBE (pidiendo un
- * derrape nuevo). Deliberadamente más baja que GRIP_RECOVERY_RATE: la
- * entrada al derrape debe sentirse instantánea (input-driven), solo la
- * salida es progresiva.
- */
-const DRIFT_ENTRY_RATE = 0.5;
-
-/**
- * "Accelerator_Slip_K": una vez dentro de un derrape (driftIntensity por
- * encima de DRIFT_THRESHOLD), cuánto agarre lateral extra se resta por
- * mantener el acelerador pisado — permite sostener el derrape "a gas"
- * (power-slide) en vez de que se apague solo; soltar el acelerador
- * recupera agarre antes.
- */
-const ACCELERATOR_SLIP_K = 0.5;
-
-/**
- * "Rotation_Multiplier" (torque vectoring, adaptado a un modelo sin
- * ruedas): impulso de giro extra (rad/s) durante un derrape, modulado por
- * el acelerador y en la misma dirección en la que ya se está girando —
- * así el jugador puede "abrir" el ángulo de derrape acelerando, sin que
- * el asistente gire el coche por su cuenta ni contradiga al volante.
- */
-const ROTATION_MULTIPLIER = 6.0;
-
-/**
- * Ángulo máximo entre el morro y la velocidad real (slip angle) que el
- * sistema deja alcanzar "cavando" más hacia el mismo lado del derrape.
- * Sin este límite, mantener el volante a fondo (y sobre todo con el nuevo
- * impulso de torque vectoring) hace que el morro siga girando sin parar
- * hasta dar trompos completos en vez de mantener un ángulo de deriva
- * estable — justo lo que la especificación pide evitar. Contravolantear
- * (girar hacia el lado contrario a la deriva) nunca se ve limitado por
- * esto: la corrección/salida del derrape siempre tiene autoridad completa.
- */
-const MAX_SLIP_ANGLE = Math.PI * 0.55; // ~99°
+const YAW_INERTIA_FROM_SLIP = 0.85;
+/** Capacidad mínima de cambiar de velocidad angular incluso a patinazo completo, para que el volante nunca deje de responder del todo. */
+const MIN_YAW_CATCH_UP_RATE = 0.12;
 
 /**
  * Aplica un factor de "agarre/fricción por frame a 60fps" de forma
@@ -135,56 +100,39 @@ export function stepCarPhysics(
   surfaceGrip: SurfaceGrip = 1,
 ): CarState {
   const oldForward = { x: Math.cos(state.angle), y: Math.sin(state.angle) };
+  const oldRight = { x: -oldForward.y, y: oldForward.x };
 
   const forwardSpeedBefore = state.vx * oldForward.x + state.vy * oldForward.y;
+  const lateralSpeedBefore = state.vx * oldRight.x + state.vy * oldRight.y;
   const totalSpeedBefore = Math.hypot(state.vx, state.vy);
   const speedFactor = clamp(totalSpeedBefore / config.maxSpeed, 0, 1);
+  const priorSlipRatio = totalSpeedBefore > 1 ? clamp(Math.abs(lateralSpeedBefore) / totalSpeedBefore, 0, 1) : 0;
 
-  // Memoria de derrape (ver CarState.driftIntensity): se acerca cada frame
-  // a lo que el input está pidiendo ahora mismo (girar fuerte y/o freno de
-  // mano, ambos a velocidad), pero a distinta velocidad según suba o baje
-  // — instantánea al entrar, progresiva al salir.
-  const corneringIntensity = Math.abs(input.steer) * speedFactor;
-  const rawDriftDemand = clamp(Math.max(corneringIntensity, input.handbrake ? speedFactor : 0), 0, 1);
-  const previousDrift = state.driftIntensity ?? 0;
-  const driftEasing = frameRateIndependentDecay(
-    rawDriftDemand > previousDrift ? DRIFT_ENTRY_RATE : GRIP_RECOVERY_RATE,
-    dt,
-  );
-  const driftIntensity = rawDriftDemand + (previousDrift - rawDriftDemand) * driftEasing;
-  const inDrift = driftIntensity > DRIFT_THRESHOLD;
-
-  // Girar: proporcional a la velocidad TOTAL (parado no gira), no solo a la
-  // componente hacia delante — así, aunque el coche esté derrapando de
-  // lado, se mantiene autoridad de giro para poder corregir el derrape en
-  // vez de perder el control. El sentido (adelante/marcha atrás) sí
-  // depende de hacia dónde se avanza.
+  // Girar: el volante marca una velocidad angular OBJETIVO proporcional a
+  // la velocidad TOTAL (parado no gira), no solo a la componente hacia
+  // delante — así, aunque el coche esté derrapando de lado, mantiene
+  // autoridad para poder corregir el derrape. El sentido (adelante/marcha
+  // atrás) depende de hacia dónde se avanza.
   const turnDirection = Math.sign(forwardSpeedBefore) || 1;
+  const targetYawRate = input.steer * config.turnRate * speedFactor * turnDirection;
 
-  // Techo de ángulo de deriva (slip angle): cuánto se ha separado ya el
-  // morro de hacia dónde va realmente el coche. Seguir girando hacia ESE
-  // mismo lado pierde autoridad a medida que se acerca al techo (así el
-  // derrape se estabiliza en vez de convertirse en un trompo continuo);
-  // girar hacia el lado contrario (contravolantear, salir del derrape)
-  // siempre conserva autoridad completa.
-  const velocityAngle = totalSpeedBefore > 1 ? Math.atan2(state.vy, state.vx) : state.angle;
-  const slipAngle = normalizeAngle(state.angle - velocityAngle);
-  const steerContribSign = Math.sign(input.steer * turnDirection);
-  const wideningSlip = steerContribSign !== 0 && Math.sign(slipAngle) === steerContribSign;
-  const rotationAuthority = wideningSlip ? clamp(1 - Math.abs(slipAngle) / MAX_SLIP_ANGLE, 0, 1) : 1;
+  // La velocidad angular REAL no salta al objetivo de golpe: tiene
+  // inercia, más cuanto más esté patinando ya el coche (priorSlipRatio).
+  // Con buen agarre el volante responde casi al instante (conducción
+  // normal); patinando fuerte, cuesta más redirigir el morro — por eso el
+  // contravolante se nota como "coger" el coche en marcha en vez de un
+  // interruptor. No distingue entrar/salir del derrape: la misma fórmula
+  // vale para iniciar como para corregir, sin casos especiales.
+  const yawCatchUp = clamp(
+    YAW_CATCH_UP_RATE * (1 - priorSlipRatio * YAW_INERTIA_FROM_SLIP),
+    MIN_YAW_CATCH_UP_RATE,
+    1,
+  );
+  const yawRetention = frameRateIndependentDecay(1 - yawCatchUp, dt);
+  const previousYawRate = state.yawRate ?? targetYawRate;
+  const yawRate = targetYawRate + (previousYawRate - targetYawRate) * yawRetention;
 
-  let angle = state.angle + input.steer * config.turnRate * speedFactor * turnDirection * rotationAuthority * dt;
-
-  // Torque vectoring (adaptado): dentro de un derrape, mantener el
-  // acelerador pisado da un impulso de giro extra en la misma dirección en
-  // la que ya se está girando — así se puede "abrir" el ángulo de derrape
-  // con el gas sin que el asistente tome el volante por el jugador. Sujeto
-  // al mismo techo, para que no reintroduzca el trompo continuo.
-  if (inDrift && input.steer !== 0) {
-    const rotationBoost =
-      ROTATION_MULTIPLIER * clamp(input.throttle, 0, 1) * driftIntensity * Math.sign(input.steer) * rotationAuthority;
-    angle += rotationBoost * dt;
-  }
+  const angle = state.angle + yawRate * dt;
 
   // Motor / freno a lo largo del morro del coche (dirección al inicio del frame).
   const throttle = clamp(input.throttle, -1, 1);
@@ -205,16 +153,12 @@ export function stepCarPhysics(
   // Convención de "grip" (docs/ANALISIS.md §3.4): mayor agarre = menos
   // derrape. Se traduce a una retención (1 - agarre efectivo): con mucho
   // agarre, casi toda la velocidad lateral se cancela cada frame; con poco
-  // agarre (hierba, freno de mano), se conserva y el coche desliza.
-  //
-  // La pérdida de agarre por curva usa driftIntensity (suavizada) en vez
-  // del input instantáneo, y una vez dentro del derrape el acelerador
-  // resta agarre extra (Slip Ratio del spec) — sostener el gas mantiene el
-  // derrape "vivo"; soltarlo lo apaga antes.
-  const corneringGripLoss = driftIntensity * CORNERING_GRIP_LOSS;
-  const throttleSlip = inDrift ? clamp(input.throttle, 0, 1) * ACCELERATOR_SLIP_K * driftIntensity : 0;
+  // agarre (hierba, freno de mano, o girar fuerte a velocidad), se
+  // conserva y el coche desliza.
+  const corneringIntensity = Math.abs(input.steer) * speedFactor;
+  const corneringGripLoss = corneringIntensity * CORNERING_GRIP_LOSS;
   const baseLateralGrip = (input.handbrake ? config.handbrakeGrip : config.gripLateral) * surfaceGrip;
-  const effectiveLateralGrip = clamp(baseLateralGrip - corneringGripLoss - throttleSlip, MIN_LATERAL_GRIP, 1);
+  const effectiveLateralGrip = clamp(baseLateralGrip - corneringGripLoss, MIN_LATERAL_GRIP, 1);
   const forwardDecay = frameRateIndependentDecay(config.gripForward, dt);
   const lateralDecay = frameRateIndependentDecay(1 - effectiveLateralGrip, dt);
 
@@ -238,7 +182,7 @@ export function stepCarPhysics(
     angle,
     vx,
     vy,
-    driftIntensity,
+    yawRate,
   };
 }
 

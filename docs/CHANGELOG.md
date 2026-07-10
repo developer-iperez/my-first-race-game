@@ -353,3 +353,55 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     desliza menos que con acelerador, el contravolante nunca pierde
     autoridad, y el freno de mano solo (sin acelerador) sigue bastando
     para iniciar un derrape.
+
+### Changed
+- Feedback tras probar el sistema anterior: "el derrape se nota raro,
+  muy artificial" y "no hay posibilidad de contravolante". Tenía razón
+  el segundo aviso a medias — el contravolante SÍ funcionaba a nivel de
+  números (verificado por simulación) — pero el motivo de fondo era más
+  profundo: el modelo entero (memoria de derrape con dos velocidades de
+  entrada/salida, techo de ángulo con lógica de "¿este volante ensancha
+  o corrige el derrape?", impulso de giro extra por acelerador, todo
+  apilado) recalculaba el ángulo del coche de cero cada frame a partir
+  del input del momento — no había ninguna cantidad que representara
+  "el coche ya está girando" que hubiera que frenar y revertir. Sin esa
+  inercia, contravolantear técnicamente cambiaba el ángulo, pero no se
+  sentía como "coger" un coche que ya está patinando, sino como un
+  interruptor — de ahí lo de "artificial".
+  - **Reescrito el giro sobre inercia angular real**: `CarState` cambia
+    `driftIntensity` por `yawRate` (velocidad angular actual, rad/s). El
+    volante ya no fija el ángulo del coche: marca una velocidad angular
+    *objetivo* (misma fórmula de siempre, proporcional a velocidad total
+    y sentido de la marcha), y la velocidad angular real se acerca a ese
+    objetivo con un retraso — pequeño con buen agarre (conducción normal
+    casi instantánea), mayor cuanto más esté patinando ya el coche
+    (`YAW_INERTIA_FROM_SLIP`). Es la MISMA fórmula para iniciar un
+    derrape que para contravolantear y salir de él: no hay ningún caso
+    especial ni comparación de signos — solo inercia continua. El
+    contravolante ahora se ve en los números como lo que es: la
+    velocidad angular pasa de +3.2 a -3.2 rad/s a lo largo de varios
+    frames en vez de saltar de golpe, y el coche responde en
+    consecuencia (verificado en directo con capturas de pantalla y en
+    simulación).
+  - **Eliminado** todo el sistema anterior (memoria de derrape con
+    entrada/salida asimétrica, techo de ángulo de deriva basado en
+    "ensancha vs corrige", derrape sostenido específicamente por
+    acelerador, impulso de giro extra tipo torque vectoring): era la
+    combinación de estas piezas, cada una "funcionando" por separado, lo
+    que hacía que el conjunto se sintiera impredecible. El modelo nuevo
+    es más simple (un único parámetro de inercia) y, sin ningún techo
+    artificial, converge solo a un derrape sostenido estable en
+    simulación (mismo test que antes, ahora validando la propiedad
+    emergente en vez de un límite impuesto a mano).
+  - Recalibrados `CORNERING_GRIP_LOSS` (0.9) y `MIN_LATERAL_GRIP` (0.03)
+    para el nuevo modelo: en curva cerrada sostenida a velocidad,
+    converge en simulación a un ángulo de derrape estable de ~61°.
+  - Tests reescritos para reflejar el nuevo modelo (misma cobertura de
+    intención: derrape sostenido y estable sin trompo, maniobrabilidad a
+    baja velocidad/giro suave intacta, freno de mano solo sigue
+    bastando para iniciar un derrape) más tests nuevos específicos de
+    inercia angular: el contravolante revierte el sentido de giro de
+    forma gradual (no en un frame) pero sí lo revierte sosteniéndolo
+    unos frames, y el agarre normal responde al volante casi al
+    instante (para no perder la sensación arcade "directa" fuera de un
+    derrape).
