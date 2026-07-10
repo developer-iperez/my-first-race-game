@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "rally-hatch",
+  "name": "Rally Hatch",
+  "physics": {
+    "mass": 1.0,
+    "enginePower": 900,
+    "brakingPower": 1200,
+    "maxSpeed": 260,
+    "turnRate": 3.2,
+    "gripForward": 0.98,
+    "gripLateral": 0.9,
+    "handbrakeGrip": 0.6,
+    "length": 24,
+    "width": 12
+  },
+  "appearance": {
+    "sprite": "cars/rally-hatch.png",
+    "wheelbaseOffset": 6,
+    "skidColor": "#333333"
+  }
+}

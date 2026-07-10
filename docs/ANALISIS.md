@@ -162,9 +162,12 @@ adelante   = vector_desde_angulo(coche.angulo)
 vel_ad     = proyeccion(coche.vel, adelante)        // componente longitudinal
 vel_lat    = coche.vel - vel_ad                     // componente lateral (derrape)
 
-vel_ad    *= FRICCION_ADELANTE                      // ~0.98
-vel_lat   *= AGARRE_LATERAL                          // 0.9 = agarra, 0.98 = derrapa
-if (freno_de_mano) AGARRE_LATERAL_efectivo alto     // desliza más
+vel_ad    *= FRICCION_ADELANTE                      // ~0.98 (drag, no es agarre)
+// AGARRE_LATERAL: mayor = más agarre = menos derrape. Se aplica como
+// retención = (1 - agarre): a más agarre, más se frena en cada frame la
+// componente lateral (menos deslizamiento).
+vel_lat   *= (1 - AGARRE_LATERAL)                    // 0.9 = agarra, 0.5 = derrapa
+if (freno_de_mano) AGARRE_LATERAL_efectivo bajo     // desliza más
 
 coche.vel = vel_ad + vel_lat + acel*adelante
 coche.pos += coche.vel * dt
@@ -271,8 +274,8 @@ modelo arcade de la sección 3.4:
     "maxSpeed": 260,
     "turnRate": 3.2,        // rad/s de giro a velocidad de referencia
     "gripForward": 0.98,    // fricción longitudinal (sección 3.4)
-    "gripLateral": 0.90,    // agarre lateral: menor = derrapa más
-    "handbrakeGrip": 0.98,  // agarre lateral con freno de mano
+    "gripLateral": 0.90,    // agarre lateral: mayor = menos derrape
+    "handbrakeGrip": 0.60,  // agarre lateral con freno de mano: menor que gripLateral = más derrape
     "length": 24,           // "longitud": batalla; afecta al radio de giro/feel
     "width": 12
   },
