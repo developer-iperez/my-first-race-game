@@ -17,6 +17,23 @@ describe('parseTrack', () => {
     const { spawn: _spawn, ...withoutSpawn } = trackFixture as Record<string, unknown>;
     expect(() => parseTrack(withoutSpawn)).toThrow();
   });
+
+  it('accepts the optional angle/width on the start_finish waypoint (checkered line geometry)', () => {
+    const track = parseTrack(trackFixture);
+    const startFinish = track.waypoints.find((w) => w.type === 'start_finish');
+    expect(startFinish?.angle).toBe(180);
+    expect(startFinish?.width).toBe(64);
+  });
+
+  it('still accepts a start_finish waypoint without angle/width (falls back to a marker)', () => {
+    const withoutGeometry = {
+      ...trackFixture,
+      waypoints: (trackFixture.waypoints as Record<string, unknown>[]).map((w) =>
+        w.type === 'start_finish' ? { x: w.x, y: w.y, type: w.type } : w,
+      ),
+    };
+    expect(() => parseTrack(withoutGeometry)).not.toThrow();
+  });
 });
 
 describe('parseCar', () => {

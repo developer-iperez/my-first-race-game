@@ -245,7 +245,10 @@ jugable* (independiente de gráficos) de la *presentación*:
   },
   "spawn":   { "x": 120, "y": 180, "angle": 0 },
   "waypoints": [                               // centro de pista: meta, checkpoints, dirección
-    { "x": 120, "y": 180, "type": "start_finish" },
+    // angle/width (opcionales, solo start_finish): dibuja la meta como una
+    // línea a cuadros perpendicular a la dirección de carrera, en vez de
+    // un simple punto.
+    { "x": 120, "y": 180, "type": "start_finish", "angle": 90, "width": 64 },
     { "x": 300, "y": 60,  "type": "checkpoint" }
   ],
   "laps": 3,

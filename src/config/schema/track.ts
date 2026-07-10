@@ -15,6 +15,15 @@ const WaypointSchema = z.object({
   x: z.number(),
   y: z.number(),
   type: z.enum(['start_finish', 'checkpoint']),
+  /**
+   * Geometría opcional de la línea (solo tiene sentido para
+   * "start_finish"): dirección de carrera al cruzarla en grados (misma
+   * convención que spawn.angle) y ancho en px. Con ambos definidos se
+   * dibuja como una línea a cuadros blancos y negros perpendicular a la
+   * dirección de carrera, en vez del círculo por defecto.
+   */
+  angle: z.number().optional(),
+  width: z.number().positive().optional(),
 });
 
 export const TrackSchema = z.object({

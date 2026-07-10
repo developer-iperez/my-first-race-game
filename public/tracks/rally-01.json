@@ -760,7 +760,9 @@
     {
       "x": 56,
       "y": 168,
-      "type": "start_finish"
+      "type": "start_finish",
+      "angle": 180,
+      "width": 64
     },
     {
       "x": 56,

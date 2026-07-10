@@ -105,3 +105,13 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     arcade y no simulación).
   - `LapTracker.nextTargetIndex` (getter público nuevo) para poder señalar
     el objetivo actual desde la escena.
+
+### Added
+- Meta clásica a cuadros blancos y negros, **definida en el JSON del
+  circuito** (no en el renderer): el esquema de waypoint (`src/config/schema/track.ts`)
+  gana dos campos opcionales, `angle` (dirección de carrera al cruzar la
+  línea, misma convención que `spawn.angle`) y `width` (ancho en px). Con
+  ambos definidos, `TrackRenderer` dibuja una franja a cuadros perpendicular
+  a esa dirección en vez del círculo por defecto; sin ellos, sigue
+  funcionando igual que antes (compatible con circuitos ya existentes).
+  `rally-01.json` ya define su meta con `angle: 180, width: 64`.
