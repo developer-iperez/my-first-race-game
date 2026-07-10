@@ -179,6 +179,74 @@ describe('stepCarPhysics', () => {
       expect(isSkidding(result)).toBe(false);
     });
   });
+
+  describe('Arcade-Drift Dynamics (v0.4.1: derrape sostenido por acelerador, sin trompos)', () => {
+    function simulateFrames(
+      initial: CarState,
+      input: { throttle: number; steer: number; handbrake: boolean },
+      frames: number,
+    ): CarState {
+      let state = initial;
+      for (let i = 0; i < frames; i++) {
+        state = stepCarPhysics(state, input, baseConfig, 1 / 60);
+      }
+      return state;
+    }
+
+    const slipRatio = (s: CarState): number => {
+      const fwd = { x: Math.cos(s.angle), y: Math.sin(s.angle) };
+      const right = { x: -fwd.y, y: fwd.x };
+      const lat = s.vx * right.x + s.vy * right.y;
+      return Math.abs(lat) / Math.hypot(s.vx, s.vy);
+    };
+
+    it('holding full lock + throttle settles into a stable held drift, not a runaway spin', () => {
+      const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
+      // 3 segundos a fondo: si no hubiera techo de estabilización, el
+      // ángulo real (heading) daría vueltas y vueltas sin parar y el ratio
+      // de deslizamiento subiría sin control hasta un patinazo total.
+      const result = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 180);
+      expect(slipRatio(result)).toBeGreaterThan(0.5);
+      expect(slipRatio(result)).toBeLessThan(0.98);
+    });
+
+    it('sustaining a drift keeps the slip ratio steady over time instead of climbing without bound', () => {
+      const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
+      const midway = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 90);
+      const later = simulateFrames(midway, { throttle: 1, steer: 1, handbrake: false }, 90);
+      expect(Math.abs(slipRatio(later) - slipRatio(midway))).toBeLessThan(0.05);
+    });
+
+    it('releasing the accelerator mid-drift lets the slip die down quickly (throttle is what sustains it)', () => {
+      const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
+      const drifting = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 90);
+      const afterRelease = simulateFrames(drifting, { throttle: 0, steer: 0, handbrake: false }, 10);
+      expect(slipRatio(afterRelease)).toBeLessThan(0.1);
+    });
+
+    it('steering alone without any throttle cannot sustain a drift the way holding the gas does', () => {
+      const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
+      const withThrottle = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 90);
+      const withoutThrottle = simulateFrames(fast, { throttle: 0, steer: 1, handbrake: false }, 90);
+      expect(slipRatio(withoutThrottle)).toBeLessThan(slipRatio(withThrottle));
+    });
+
+    it('countersteering out of a drift always has full rotational authority, even near the slip ceiling', () => {
+      const fast: CarState = { x: 0, y: 0, angle: 0, vx: 260, vy: 0 };
+      const drifted = simulateFrames(fast, { throttle: 1, steer: 1, handbrake: false }, 120);
+      const widening = stepCarPhysics(drifted, { throttle: 1, steer: 1, handbrake: false }, baseConfig, 1 / 60);
+      const countersteering = stepCarPhysics(drifted, { throttle: 1, steer: -1, handbrake: false }, baseConfig, 1 / 60);
+      const widenAngleDelta = Math.abs(widening.angle - drifted.angle);
+      const counterAngleDelta = Math.abs(countersteering.angle - drifted.angle);
+      expect(counterAngleDelta).toBeGreaterThan(widenAngleDelta);
+    });
+
+    it('handbrake alone (no throttle) is still enough to kick off a drift', () => {
+      const cornering: CarState = { x: 0, y: 0, angle: 0, vx: 220, vy: 0 };
+      const result = simulateFrames(cornering, { throttle: 0, steer: 1, handbrake: true }, 20);
+      expect(isSkidding(result)).toBe(true);
+    });
+  });
 });
 
 describe('isSkidding', () => {

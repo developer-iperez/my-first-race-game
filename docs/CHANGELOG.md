@@ -301,3 +301,55 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     cruza el arcén de hierba sin apenas perder velocidad, y solo al
     tocar el límite literal empieza a frenar con fuerza mientras se
     queda visible, pegado al borde.
+
+### Changed
+- Reescrito el modelo de derrape sobre una especificación funcional que
+  el usuario aportó ("Arcade-Drift Dynamics": física asistida, no
+  simulación de neumáticos), adaptando las partes que tienen sentido en
+  un modelo 2D de punto-masa sin ruedas ni suspensión:
+  - **Derrape sostenido con el acelerador (Slip Ratio)**: `CarState`
+    gana un campo opcional `driftIntensity`, una "memoria" de derrape
+    suavizada frame a frame (sube rápido al pedir un derrape, baja
+    despacio al soltar) en vez de recalcularse de golpe cada frame con
+    el input instantáneo. Una vez dentro de un derrape
+    (`driftIntensity` por encima de `DRIFT_THRESHOLD`), mantener el
+    acelerador pisado resta agarre lateral extra y sostiene el
+    derrape — soltar el gas lo apaga en unos pocos frames. Girar fuerte
+    sin acelerador ya no basta por sí solo para mantener un derrape
+    largo (antes sí): ahora hace falta gestionar el gas, como pide la
+    especificación ("Mantenimiento: acelerador constante").
+  - **Techo de ángulo de deriva (estabilización)**: al implementar el
+    sostenido con el acelerador apareció un trompo real — mantener el
+    volante a fondo más de un segundo hacía que el morro girase sin
+    parar (0°→270°+) en vez de mantener un ángulo estable, justo lo que
+    la especificación pide evitar. Añadido un límite: seguir girando
+    hacia el mismo lado del derrape pierde autoridad de giro a medida
+    que el ángulo entre el morro y la velocidad real se acerca a un
+    máximo (`MAX_SLIP_ANGLE`), así el sistema converge solo a un ángulo
+    de derrape estable (validado por simulación: mantiene ~65-70° de
+    deslizamiento en línea recta, sostenido, sin variar, en vez de dar
+    vueltas). Contravolantear (girar hacia el lado contrario) nunca
+    pierde autoridad — la salida/corrección del derrape sigue siendo
+    siempre instantánea y completa.
+  - **Impulso de giro extra con el acelerador (torque vectoring
+    adaptado)**: dentro de un derrape, mantener el acelerador pisado da
+    un empujón de giro extra en la misma dirección en la que ya se está
+    girando (sujeto al mismo techo), para poder "abrir" el ángulo de
+    derrape con el gas.
+  - **No implementado**: la parte de la especificación sobre
+    suspensión/transferencia de peso (compresión de muelles, carga
+    vertical por rueda) no tiene equivalente en este modelo 2D de vista
+    cenital sin ruedas ni eje Z — se ha omitido en vez de simular algo
+    ficticio sin sentido físico en este juego.
+  - Cambio de comportamiento a tener en cuenta: antes, girar a fondo
+    solo (sin acelerador) ya daba un derrape dramático; ahora ese mismo
+    volante sin gas apenas desliza y pierde bastante velocidad —
+    sostener un derrape largo es ahora una habilidad deliberada
+    (gestionar el acelerador), no un efecto automático de girar fuerte.
+  - 6 tests nuevos (`tests/carPhysics.test.ts`) simulando el bucle a
+    `dt` real de 60fps: derrape sostenido estable sin trompo, el ratio
+    de deslizamiento no crece sin límite mientras se sostiene, soltar el
+    acelerador apaga el derrape en pocos frames, girar sin acelerador
+    desliza menos que con acelerador, el contravolante nunca pierde
+    autoridad, y el freno de mano solo (sin acelerador) sigue bastando
+    para iniciar un derrape.
