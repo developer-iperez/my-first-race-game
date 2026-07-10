@@ -45,6 +45,11 @@ export class LapTracker {
     return this.lapStartMs;
   }
 
+  /** Índice del próximo waypoint al que hay que llegar (para señalarlo en pantalla). */
+  get nextTargetIndex(): number {
+    return this.nextWaypointIndex;
+  }
+
   update(x: number, y: number, elapsedMs: number): void {
     if (this.finished || this.waypoints.length === 0) return;
 

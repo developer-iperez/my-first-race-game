@@ -81,4 +81,17 @@ describe('LapTracker', () => {
     driveThroughLap(tracker, 0);
     expect(tracker.getState().currentLap).toBe(1);
   });
+
+  it('exposes the index of the next waypoint to reach, advancing as checkpoints are hit', () => {
+    const tracker = new LapTracker(waypoints, 3, RADIUS);
+    expect(tracker.nextTargetIndex).toBe(1);
+    tracker.update(100, 0, 1000); // checkpoint 1
+    expect(tracker.nextTargetIndex).toBe(2);
+    tracker.update(100, 100, 2000); // checkpoint 2
+    expect(tracker.nextTargetIndex).toBe(3);
+    tracker.update(0, 100, 3000); // checkpoint 3
+    expect(tracker.nextTargetIndex).toBe(0); // ahora toca volver a la meta
+    tracker.update(0, 0, 4000); // cruza la meta: nueva vuelta
+    expect(tracker.nextTargetIndex).toBe(1);
+  });
 });

@@ -10,6 +10,7 @@ import { Settings } from '../settings/Settings';
 import { applyDifficultyToPhysics } from '../settings/difficulty';
 import { LapTracker } from '../race/LapTracker';
 import { RaceHud } from '../race/RaceHud';
+import { NextTargetIndicator } from '../race/NextTargetIndicator';
 import type { CarDefinition } from '../config/schema/car';
 import type { CarInput } from '../physics/carPhysics';
 import type { TrackDefinition } from '../config/schema/track';
@@ -33,6 +34,7 @@ export class RaceScene extends Phaser.Scene {
   private unsubscribeSettings?: () => void;
   private lapTracker!: LapTracker;
   private hud!: RaceHud;
+  private nextTargetIndicator!: NextTargetIndicator;
   private raceElapsedMs = 0;
 
   constructor() {
@@ -59,8 +61,12 @@ export class RaceScene extends Phaser.Scene {
     });
     this.applyDifficulty();
 
-    this.lapTracker = new LapTracker(this.track.waypoints, this.track.laps, this.track.tileSize * 1.5);
+    // Radio de activación generoso (arcade, no simulación): el circuito no
+    // es tan ancho como para que el jugador tenga que pasar por el centro
+    // exacto de cada checkpoint.
+    this.lapTracker = new LapTracker(this.track.waypoints, this.track.laps, this.track.tileSize * 2.5);
     this.hud = new RaceHud(this);
+    this.nextTargetIndicator = new NextTargetIndicator(this);
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -75,6 +81,7 @@ export class RaceScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.touchControls.destroy();
       this.settingsMenu.destroy();
+      this.nextTargetIndicator.destroy();
       this.unsubscribeSettings?.();
     });
   }
@@ -106,6 +113,9 @@ export class RaceScene extends Phaser.Scene {
 
     this.lapTracker.update(this.car.state.x, this.car.state.y, this.raceElapsedMs);
     this.hud.update(this.lapTracker.getState(), this.raceElapsedMs - this.lapTracker.currentLapStartMs);
+
+    const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
+    this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);
   }
 
   private readInput(): CarInput {

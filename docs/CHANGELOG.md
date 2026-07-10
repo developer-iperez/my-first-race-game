@@ -89,3 +89,19 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   - `src/race/RaceHud.ts`: HUD fijo a la cámara con vuelta actual,
     cronómetro en marcha y mejor vuelta; aviso de "¡Meta!" al completar las
     vueltas del circuito (`track.laps`).
+
+### Fixed
+- No se veía bien la meta y las vueltas no contaban: los marcadores eran
+  círculos de 4px muy discretos, y el radio para activar un checkpoint
+  (24px) era demasiado ajustado para lo ancho que es el circuito
+  (60-80px), así que si no se pasaba justo por el centro del carril nunca
+  se activaba.
+  - Marcadores de meta/checkpoints más grandes y con relleno (`TrackRenderer`).
+  - `src/race/NextTargetIndicator.ts`: anillo verde pulsante que señala
+    siempre el próximo checkpoint al que hay que llegar — soluciona a la
+    vez "no veo la meta" y "no sé por dónde ir", porque siempre hay un
+    punto parpadeando indicando el objetivo actual.
+  - Radio de activación de checkpoint subido de 24px a 40px (más permisivo,
+    arcade y no simulación).
+  - `LapTracker.nextTargetIndex` (getter público nuevo) para poder señalar
+    el objetivo actual desde la escena.

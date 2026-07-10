@@ -31,7 +31,10 @@ export function renderTrack(scene: Phaser.Scene, track: TrackDefinition): void {
 
   for (const waypoint of track.waypoints) {
     const color = waypoint.type === 'start_finish' ? 0xffffff : 0xffff00;
+    const radius = waypoint.type === 'start_finish' ? 9 : 7;
+    graphics.fillStyle(color, 0.25);
+    graphics.fillCircle(waypoint.x, waypoint.y, radius);
     graphics.lineStyle(2, color, 1);
-    graphics.strokeCircle(waypoint.x, waypoint.y, 4);
+    graphics.strokeCircle(waypoint.x, waypoint.y, radius);
   }
 }
