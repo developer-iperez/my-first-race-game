@@ -29,3 +29,8 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   cambio de color al derrapar.
 - CI (lint + test + build) y despliegue automático a GitHub Pages vía GitHub
   Actions.
+- Controles táctiles en pantalla (`src/input/TouchControls.ts`) para jugar en
+  móvil/tablet sin teclado físico: botones DOM con pointer events multi-touch
+  (acelerar y girar a la vez con dedos distintos), combinados con el teclado.
+  Aviso de "gira el dispositivo" en vertical, ya que el circuito es panorámico
+  (F3, se ve completo sin scroll) y en vertical el canvas queda muy pequeño.

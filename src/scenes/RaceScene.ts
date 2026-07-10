@@ -4,6 +4,7 @@ import { renderTrack } from '../track/TrackRenderer';
 import { getSurfaceGripAt, isWallAt } from '../track/TrackQuery';
 import { CarLoader } from '../entities/CarLoader';
 import { Car } from '../entities/Car';
+import { TouchControls } from '../input/TouchControls';
 import type { CarInput } from '../physics/carPhysics';
 import type { TrackDefinition } from '../config/schema/track';
 
@@ -20,6 +21,7 @@ export class RaceScene extends Phaser.Scene {
   private car!: Car;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private handbrakeKey!: Phaser.Input.Keyboard.Key;
+  private touchControls!: TouchControls;
 
   constructor() {
     super('Race');
@@ -46,6 +48,12 @@ export class RaceScene extends Phaser.Scene {
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // Controles táctiles: para tablet/móvil sin teclado físico. Se montan
+    // como DOM aparte de Phaser (multi-touch real) y se combinan con el
+    // teclado en readInput(), así que ambos funcionan a la vez.
+    this.touchControls = new TouchControls(document.body);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.touchControls.destroy());
   }
 
   update(_time: number, deltaMs: number): void {
@@ -66,14 +74,20 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private readInput(): CarInput {
+    const touch = this.touchControls.state;
+
     let throttle = 0;
-    if (this.cursors.up.isDown) throttle += 1;
-    if (this.cursors.down.isDown) throttle -= 1;
+    if (this.cursors.up.isDown || touch.throttleUp) throttle += 1;
+    if (this.cursors.down.isDown || touch.throttleDown) throttle -= 1;
 
     let steer = 0;
-    if (this.cursors.left.isDown) steer -= 1;
-    if (this.cursors.right.isDown) steer += 1;
+    if (this.cursors.left.isDown || touch.left) steer -= 1;
+    if (this.cursors.right.isDown || touch.right) steer += 1;
 
-    return { throttle, steer, handbrake: this.handbrakeKey.isDown };
+    return {
+      throttle,
+      steer,
+      handbrake: this.handbrakeKey.isDown || touch.handbrake,
+    };
   }
 }

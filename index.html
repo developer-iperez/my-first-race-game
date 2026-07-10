@@ -2,7 +2,10 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>Rally 90s</title>
     <style>
       html, body {
@@ -10,6 +13,8 @@
         padding: 0;
         background: #0a0a0a;
         height: 100%;
+        overscroll-behavior: none;
+        touch-action: none;
       }
       #app {
         width: 100vw;
@@ -21,10 +26,114 @@
       #app canvas {
         image-rendering: pixelated;
       }
+
+      /* Controles táctiles (móvil/tablet sin teclado físico) */
+      .touch-controls {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+      }
+      .touch-controls__cluster {
+        position: absolute;
+        bottom: 24px;
+        display: flex;
+        gap: 12px;
+      }
+      .touch-controls__cluster--steer {
+        left: 20px;
+      }
+      .touch-controls__cluster--pedals {
+        right: 20px;
+        flex-direction: column;
+      }
+      .touch-btn {
+        pointer-events: auto;
+        touch-action: none;
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-size: 24px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .touch-btn.is-active {
+        background: rgba(255, 204, 0, 0.55);
+        border-color: #ffcc00;
+      }
+      .touch-btn--handbrake {
+        position: absolute;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 56px;
+        height: 56px;
+        font-size: 20px;
+        background: rgba(139, 26, 26, 0.35);
+      }
+      .touch-btn--handbrake.is-active {
+        background: rgba(255, 60, 60, 0.6);
+        border-color: #ff3c3c;
+      }
+
+      /* En escritorio (ratón, sin touch) los controles se atenúan: el
+         teclado es el input principal, pero siguen siendo clicables. */
+      @media (hover: hover) and (pointer: fine) {
+        .touch-controls {
+          opacity: 0.35;
+        }
+      }
+
+      /* El circuito es panorámico (F3: se ve completo, sin scroll): en
+         vertical el canvas queda diminuto. En móvil/tablet (pointer: coarse)
+         se pide girar el dispositivo en vez de jugar así. */
+      #rotate-hint {
+        display: none;
+      }
+      @media (orientation: portrait) and (pointer: coarse) {
+        #app,
+        .touch-controls {
+          display: none;
+        }
+        #rotate-hint {
+          display: flex;
+          position: fixed;
+          inset: 0;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          color: #fff;
+          font-family: system-ui, sans-serif;
+          text-align: center;
+          padding: 24px;
+        }
+        #rotate-hint .icon {
+          font-size: 48px;
+          animation: rotate-hint-spin 1.8s ease-in-out infinite;
+        }
+        @keyframes rotate-hint-spin {
+          0%, 100% { transform: rotate(0deg); }
+          50% { transform: rotate(90deg); }
+        }
+      }
     </style>
   </head>
   <body>
     <div id="app"></div>
+    <div id="rotate-hint">
+      <div class="icon">🔄</div>
+      <p>Gira el dispositivo para jugar en horizontal</p>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
