@@ -35,8 +35,9 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Fase de fin de carrera: coche se congela al completar las vueltas,
   botón para volver a empezar
 
-## v0.3 — Estética 90s ⬜
-- ⬜ Pixel art del coche y el circuito
+## v0.3 — Estética 90s 🟨
+- ✅ Pixel art del coche y el circuito (sprites generados: coche, asfalto,
+  hierba, arena, muro a rayas)
 - ⬜ HUD retro
 - ⬜ Audio (motor, derrape, checkpoint)
 

@@ -7,17 +7,16 @@ import { stepCarPhysics, isSkidding, type CarInput, type CarState } from '../phy
  * (JSON validado). No contiene ninguna constante de tuning propia: cambiar
  * de vehículo es cargar otro fichero, no tocar esta clase.
  *
- * V1 no tiene arte final (docs/ROADMAP.md), así que se representa con un
- * rectángulo de Graphics dimensionado por physics.length/width en vez de
- * cargar appearance.sprite.
+ * El sprite (appearance.sprite, precargado como 'car-sprite' en BootScene)
+ * se escala a physics.length/width: cambiar esos valores en el JSON del
+ * coche redimensiona el sprite en pantalla sin tocar código.
  */
 export class Car {
   state: CarState;
   readonly definition: CarDefinition;
 
-  private readonly graphics: Phaser.GameObjects.Container;
-  private readonly body: Phaser.GameObjects.Rectangle;
-  private readonly nose: Phaser.GameObjects.Rectangle;
+  private readonly sprite: Phaser.GameObjects.Image;
+  private readonly skidTint: number;
   /** Físicas efectivas usadas en la simulación: definition.physics + ajustes del jugador (dificultad). */
   private physics: CarPhysicsConfig;
 
@@ -25,12 +24,12 @@ export class Car {
     this.definition = definition;
     this.physics = definition.physics;
     this.state = { ...spawn };
+    this.skidTint = Phaser.Display.Color.HexStringToColor(definition.appearance.skidColor).color;
 
     const { length, width } = definition.physics;
-    this.body = scene.add.rectangle(0, 0, length, width, 0x2277cc);
-    this.nose = scene.add.rectangle(length / 2 - 3, 0, 6, width * 0.6, 0xffcc00);
-    this.graphics = scene.add.container(spawn.x, spawn.y, [this.body, this.nose]);
-    this.graphics.setRotation(spawn.angle);
+    this.sprite = scene.add.image(spawn.x, spawn.y, 'car-sprite');
+    this.sprite.setDisplaySize(length, width);
+    this.sprite.setRotation(spawn.angle);
   }
 
   /** Sustituye las físicas efectivas (p. ej. tras aplicar la dificultad elegida). */
@@ -45,16 +44,17 @@ export class Car {
   /** Fija el estado físico y sincroniza el render (p. ej. tras resolver una colisión). */
   setState(state: CarState): void {
     this.state = state;
-    this.graphics.setPosition(this.state.x, this.state.y);
-    this.graphics.setRotation(this.state.angle);
+    this.sprite.setPosition(this.state.x, this.state.y);
+    this.sprite.setRotation(this.state.angle);
 
-    const skidColorHex = Phaser.Display.Color.HexStringToColor(
-      this.definition.appearance.skidColor,
-    ).color;
-    this.body.setFillStyle(isSkidding(this.state) ? skidColorHex : 0x2277cc);
+    if (isSkidding(this.state)) {
+      this.sprite.setTint(this.skidTint);
+    } else {
+      this.sprite.clearTint();
+    }
   }
 
   destroy(): void {
-    this.graphics.destroy();
+    this.sprite.destroy();
   }
 }

@@ -15,6 +15,15 @@ export class BootScene extends Phaser.Scene {
   preload(): void {
     TrackLoader.enqueue(this, 'track:rally-01', 'tracks/rally-01.json');
     CarLoader.enqueue(this, 'car:rally-hatch', 'cars/rally-hatch.json');
+
+    // Sprites de pixel art (v0.3). Con un solo coche/circuito, se precargan
+    // aquí directamente; cuando haya selector de varios, esto pasaría a
+    // derivarse de appearance.sprite / theme una vez parseado el JSON.
+    this.load.image('car-sprite', 'cars/rally-hatch.png');
+    this.load.image('tile-asphalt', 'tiles/asphalt.png');
+    this.load.image('tile-grass', 'tiles/grass.png');
+    this.load.image('tile-sand', 'tiles/sand.png');
+    this.load.image('tile-wall', 'tiles/wall.png');
   }
 
   create(): void {

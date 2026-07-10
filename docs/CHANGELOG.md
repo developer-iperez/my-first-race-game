@@ -154,3 +154,20 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   recibe ahora también `vx, vy` del coche. 4 tests nuevos cubren marcha
   atrás rechazada, aceptación al corregir el sentido, tolerancia a baja
   velocidad y que dar toda la vuelta al revés no cuenta como vuelta válida.
+
+### Added
+- **v0.3 (en curso): pixel art real**, generado por script (`Pillow`) en vez
+  de los rectángulos de color plano de v0.1-v0.2:
+  - `public/cars/rally-hatch.png`: coche 24×12 (mismo tamaño que
+    `physics.length/width`), morro apuntando a +x, con cabina, morro y
+    piloto trasero como acentos de color.
+  - `public/tiles/{asphalt,grass,sand,wall}.png`: tiles de 16×16 con
+    textura de grano/motas; el muro es una franja roja-blanca clásica de
+    circuito de carreras.
+  - `Car`: ahora usa `scene.add.image('car-sprite')` con `setDisplaySize`
+    (se redimensiona solo si cambia `physics.length/width`) y
+    `setTint`/`clearTint` para el efecto de derrape, en vez de
+    Graphics + swap de color de relleno.
+  - `TrackRenderer`: cada celda del tilemap se pinta con la imagen de su
+    superficie (o la de muro si `walls[fila][col] === 1`); los marcadores
+    de meta/checkpoints se dibujan por encima con Graphics, sin cambios.

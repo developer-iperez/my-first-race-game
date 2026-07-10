@@ -2,33 +2,38 @@ import Phaser from 'phaser';
 import type { TrackDefinition, Waypoint } from '../config/schema/track';
 
 /**
- * Dibuja un circuito a partir de su TrackDefinition. V1 no tiene tileset
- * final (docs/ROADMAP.md), así que pinta cada tile como un rectángulo de
- * color según su superficie; el color es solo una paleta de marcador de
- * posición, no forma parte del esquema de datos.
+ * Dibuja un circuito a partir de su TrackDefinition, usando los tiles de
+ * pixel art precargados en BootScene (uno por superficie, más uno de
+ * muro). La clave de textura de cada superficie es un mapeo fijo aquí, no
+ * parte del esquema de datos: el JSON del circuito solo dice qué
+ * superficie hay en cada celda, no de qué imagen se pinta.
  */
-const PLACEHOLDER_SURFACE_COLORS: Record<string, number> = {
-  asphalt: 0x3a3a3a,
-  grass: 0x2f6b2f,
-  sand: 0xc2a05a,
+const SURFACE_TEXTURE_KEYS: Record<string, string> = {
+  asphalt: 'tile-asphalt',
+  grass: 'tile-grass',
+  sand: 'tile-sand',
 };
-const WALL_COLOR = 0x8b1a1a;
+const WALL_TEXTURE_KEY = 'tile-wall';
+const FALLBACK_TEXTURE_KEY = 'tile-grass';
 
 export function renderTrack(scene: Phaser.Scene, track: TrackDefinition): void {
-  const graphics = scene.add.graphics();
   const { tileSize } = track;
 
   track.layers.surface.forEach((row, rowIndex) => {
     row.forEach((surfaceKey, colIndex) => {
       const isWall = track.layers.walls[rowIndex]?.[colIndex] === 1;
-      const color = isWall
-        ? WALL_COLOR
-        : (PLACEHOLDER_SURFACE_COLORS[surfaceKey] ?? 0x555555);
-      graphics.fillStyle(color, 1);
-      graphics.fillRect(colIndex * tileSize, rowIndex * tileSize, tileSize, tileSize);
+      const textureKey = isWall
+        ? WALL_TEXTURE_KEY
+        : (SURFACE_TEXTURE_KEYS[surfaceKey] ?? FALLBACK_TEXTURE_KEY);
+      scene.add
+        .image(colIndex * tileSize, rowIndex * tileSize, textureKey)
+        .setOrigin(0, 0)
+        .setDisplaySize(tileSize, tileSize);
     });
   });
 
+  // Marcadores de meta/checkpoints por encima de los tiles.
+  const graphics = scene.add.graphics();
   for (const waypoint of track.waypoints) {
     if (waypoint.type === 'start_finish' && waypoint.angle !== undefined && waypoint.width !== undefined) {
       drawCheckeredLine(graphics, waypoint);
