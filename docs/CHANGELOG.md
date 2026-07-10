@@ -114,4 +114,15 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   ambos definidos, `TrackRenderer` dibuja una franja a cuadros perpendicular
   a esa dirección en vez del círculo por defecto; sin ellos, sigue
   funcionando igual que antes (compatible con circuitos ya existentes).
-  `rally-01.json` ya define su meta con `angle: 180, width: 64`.
+  `rally-01.json` ya define su meta con `angle: 0, width: 64`.
+
+### Fixed
+- La meta quedaba "suelta": estaba colocada junto al spawn, en una zona
+  abierta del circuito sin carril acotado por ambos lados, así que la
+  franja a cuadros no tocaba ninguna pared y flotaba en medio del asfalto.
+  Reubicada en la recta superior (entre el muro exterior y la isla, un
+  tramo de 64px de ancho real), donde la línea ahora toca la pared arriba
+  y la isla abajo — ocupa el carril completo. `spawn` se movió con ella
+  (antes en la esquina inferior izquierda, ahora en la propia línea de
+  meta) y los 4 checkpoints de las esquinas se reordenaron para formar un
+  circuito coherente que termina siempre cruzando la meta en último lugar.

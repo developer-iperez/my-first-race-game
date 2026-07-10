@@ -21,7 +21,7 @@ describe('parseTrack', () => {
   it('accepts the optional angle/width on the start_finish waypoint (checkered line geometry)', () => {
     const track = parseTrack(trackFixture);
     const startFinish = track.waypoints.find((w) => w.type === 'start_finish');
-    expect(startFinish?.angle).toBe(180);
+    expect(startFinish?.angle).toBe(0);
     expect(startFinish?.width).toBe(64);
   });
 

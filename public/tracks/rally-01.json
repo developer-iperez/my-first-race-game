@@ -752,24 +752,19 @@
     ]
   },
   "spawn": {
-    "x": 56,
-    "y": 168,
-    "angle": -90
+    "x": 192,
+    "y": 48,
+    "angle": 0
   },
   "waypoints": [
     {
-      "x": 56,
-      "y": 168,
+      "x": 192,
+      "y": 48,
       "type": "start_finish",
-      "angle": 180,
+      "angle": 0,
       "width": 64
     },
     {
-      "x": 56,
-      "y": 56,
-      "type": "checkpoint"
-    },
-    {
       "x": 328,
       "y": 56,
       "type": "checkpoint"
@@ -777,6 +772,16 @@
     {
       "x": 328,
       "y": 168,
+      "type": "checkpoint"
+    },
+    {
+      "x": 56,
+      "y": 168,
+      "type": "checkpoint"
+    },
+    {
+      "x": 56,
+      "y": 56,
       "type": "checkpoint"
     }
   ],
