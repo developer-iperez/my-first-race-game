@@ -37,6 +37,17 @@ const clamp = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, value));
 
 /**
+ * Cuánto agarre lateral como máximo se resta al girar fuerte a alta
+ * velocidad (v0.4: derrape más espectacular en curvas). Con el volante a
+ * fondo y a velocidad máxima se llega a perder esta fracción de agarre;
+ * girando suave o a baja velocidad casi no afecta, así que las maniobras
+ * lentas y precisas (aparcar, esquivar) no se ven penalizadas.
+ */
+const CORNERING_GRIP_LOSS = 0.85;
+/** Agarre lateral mínimo garantizado, para que nunca se vuelva un patinazo sin control. */
+const MIN_LATERAL_GRIP = 0.08;
+
+/**
  * Aplica un factor de "agarre/fricción por frame a 60fps" de forma
  * independiente del framerate real, usando dt en segundos.
  */
@@ -54,10 +65,14 @@ export function stepCarPhysics(
   const oldForward = { x: Math.cos(state.angle), y: Math.sin(state.angle) };
 
   const forwardSpeedBefore = state.vx * oldForward.x + state.vy * oldForward.y;
+  const totalSpeedBefore = Math.hypot(state.vx, state.vy);
 
-  // Girar: proporcional a la velocidad hacia delante (parado no gira), y en
-  // el sentido de la marcha (marcha atrás gira al revés).
-  const speedFactor = clamp(Math.abs(forwardSpeedBefore) / config.maxSpeed, 0, 1);
+  // Girar: proporcional a la velocidad TOTAL (parado no gira), no solo a la
+  // componente hacia delante — así, aunque el coche esté derrapando de
+  // lado, se mantiene autoridad de giro para poder corregir el derrape en
+  // vez de perder el control (v0.4: espectacular pero manejable). El
+  // sentido (adelante/marcha atrás) sí depende de hacia dónde se avanza.
+  const speedFactor = clamp(totalSpeedBefore / config.maxSpeed, 0, 1);
   const turnDirection = Math.sign(forwardSpeedBefore) || 1;
   const angle = state.angle + input.steer * config.turnRate * speedFactor * turnDirection * dt;
 
@@ -81,8 +96,16 @@ export function stepCarPhysics(
   // derrape. Se traduce a una retención (1 - agarre efectivo): con mucho
   // agarre, casi toda la velocidad lateral se cancela cada frame; con poco
   // agarre (hierba, freno de mano), se conserva y el coche desliza.
-  const lateralGrip = input.handbrake ? config.handbrakeGrip : config.gripLateral;
-  const effectiveLateralGrip = clamp(lateralGrip * surfaceGrip, 0, 1);
+  //
+  // v0.4: además del freno de mano, girar fuerte a velocidad alta resta
+  // agarre por sí solo (corneringGripLoss) — el coche entra en un derrape
+  // natural en curvas cerradas tomadas rápido, sin necesitar el freno de
+  // mano para lucirse. Girando suave o despacio apenas se nota, así que
+  // las maniobras precisas a baja velocidad siguen intactas.
+  const corneringIntensity = Math.abs(input.steer) * speedFactor;
+  const corneringGripLoss = corneringIntensity * CORNERING_GRIP_LOSS;
+  const baseLateralGrip = (input.handbrake ? config.handbrakeGrip : config.gripLateral) * surfaceGrip;
+  const effectiveLateralGrip = clamp(baseLateralGrip - corneringGripLoss, MIN_LATERAL_GRIP, 1);
   const forwardDecay = frameRateIndependentDecay(config.gripForward, dt);
   const lateralDecay = frameRateIndependentDecay(1 - effectiveLateralGrip, dt);
 

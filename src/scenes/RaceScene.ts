@@ -12,6 +12,7 @@ import { LapTracker } from '../race/LapTracker';
 import { RaceHud } from '../race/RaceHud';
 import { NextTargetIndicator } from '../race/NextTargetIndicator';
 import { RaceAudio } from '../race/RaceAudio';
+import { SkidParticles } from '../race/SkidParticles';
 import type { CarDefinition } from '../config/schema/car';
 import type { CarInput } from '../physics/carPhysics';
 import type { TrackDefinition } from '../config/schema/track';
@@ -37,6 +38,7 @@ export class RaceScene extends Phaser.Scene {
   private hud!: RaceHud;
   private nextTargetIndicator!: NextTargetIndicator;
   private audio!: RaceAudio;
+  private skidParticles!: SkidParticles;
   private raceElapsedMs = 0;
   private sceneData!: RaceSceneData;
 
@@ -77,6 +79,7 @@ export class RaceScene extends Phaser.Scene {
     this.hud = new RaceHud(this, () => this.restartRace());
     this.nextTargetIndicator = new NextTargetIndicator(this);
     this.audio = new RaceAudio(this);
+    this.skidParticles = new SkidParticles(this);
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -92,6 +95,7 @@ export class RaceScene extends Phaser.Scene {
       this.touchControls.destroy();
       this.settingsMenu.destroy();
       this.nextTargetIndicator.destroy();
+      this.skidParticles.destroy();
       // scene.restart() (botón de reinicio) dispara SHUTDOWN antes de volver
       // a llamar a create(): si no se destruye aquí, el motor/derrape de la
       // carrera anterior se quedarían sonando en bucle indefinidamente,
@@ -120,6 +124,7 @@ export class RaceScene extends Phaser.Scene {
       // Carrera terminada: el coche se congela donde esté (no se procesa
       // más física ni entrada) y se oculta el indicador de objetivo.
       this.nextTargetIndicator.hide();
+      this.skidParticles.update(this.car.state.x, this.car.state.y, this.car.state.angle, false);
     } else {
       this.raceElapsedMs += deltaMs;
 
@@ -155,6 +160,7 @@ export class RaceScene extends Phaser.Scene {
 
       const speed = Math.hypot(this.car.state.vx, this.car.state.vy);
       this.audio.update(speed, this.car.maxSpeed, this.car.isSkidding);
+      this.skidParticles.update(this.car.state.x, this.car.state.y, this.car.state.angle, this.car.isSkidding);
 
       const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
       this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);

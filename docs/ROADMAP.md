@@ -42,9 +42,10 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Audio (motor en bucle con tono/volumen por velocidad, derrape,
   checkpoint y fanfarria de meta — sintetizado, sin bancos externos)
 
-## v0.4 — Pulido y feel ⬜
-- ⬜ Partículas de derrape
-- ⬜ Tuning fino de la conducción
+## v0.4 — Pulido y feel 🟨
+- ✅ Partículas de derrape (humo/polvo tras el coche mientras derrapa)
+- ✅ Derrape más espectacular en curvas cerradas a velocidad, manteniendo
+  la maniobrabilidad (giro suave/lento intacto, se puede contravolantear)
 
 ## v1.0 — Primera versión completa ⬜
 - ⬜ Un circuito redondo y divertido

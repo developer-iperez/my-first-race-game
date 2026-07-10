@@ -199,3 +199,38 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     comprobado por API directa que el motor responde a la velocidad y que
     el derrape se enciende/apaga exactamente una vez por transición (no
     se reinicia en cada frame mientras dura).
+
+### Added
+- **Derrape más espectacular en curvas** (`src/physics/carPhysics.ts`),
+  manteniendo la maniobrabilidad:
+  - Girar fuerte a velocidad alta resta agarre lateral por sí solo
+    (`corneringGripLoss`, proporcional a `|steer| * velocidad/maxSpeed`),
+    sin necesitar el freno de mano para lucirse; girar suave o a baja
+    velocidad apenas se nota, así que aparcar/maniobrar con precisión
+    sigue intacto.
+  - El giro del coche ahora depende de la velocidad **total** (no solo de
+    la componente hacia delante), así que aunque esté derrapando de lado
+    conserva autoridad de dirección y se puede contravolantear para
+    corregir el derrape en vez de perder el control.
+  - `src/race/SkidParticles.ts`: partículas de humo/polvo (`public/tiles/particle-dust.png`,
+    generado por script) tras el coche mientras derrapa, reutilizando el
+    mismo `car.isSkidding` que ya disparaba el sonido y el tinte.
+
+### Fixed
+- El derrape "espectacular" no se notaba nada jugando de verdad (ni el
+  coche se veía derrapar mucho, ni saltaban las partículas), pese a que
+  los tests unitarios lo confirmaban. Causa: esos tests daban un único
+  paso de físicas con `dt` grande (0.2s) para exagerar la diferencia y
+  que fuera fácil de comprobar, pero la partida real avanza en pasos
+  pequeños (~1/60s) muchas veces por segundo — con el decaimiento
+  exponencial de agarre por frame, la velocidad lateral se cancelaba casi
+  tan rápido como se generaba, y en régimen estacionario a 60fps la
+  proporción lateral se quedaba muy por debajo del umbral de `isSkidding`
+  (~0.05 de ratio conseguido, frente al 0.35 necesario). Se detectó
+  simulando la físicas en bucle con `dt` pequeño (como hace `RaceScene`
+  de verdad) en vez de con un salto grande, y se corrigió subiendo
+  `CORNERING_GRIP_LOSS` a un valor que sí cruza el umbral en ese régimen
+  (0.4 → 0.85), revalidado con el mismo tipo de simulación. Se añadieron
+  3 tests nuevos que reproducen el bucle a `dt` real de 60fps (en vez de
+  un solo salto grande) para que esta clase de regresión no vuelva a
+  colarse silenciosamente.
