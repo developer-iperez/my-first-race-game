@@ -11,6 +11,7 @@ import { applyDifficultyToPhysics } from '../settings/difficulty';
 import { LapTracker } from '../race/LapTracker';
 import { RaceHud } from '../race/RaceHud';
 import { NextTargetIndicator } from '../race/NextTargetIndicator';
+import { RaceAudio } from '../race/RaceAudio';
 import type { CarDefinition } from '../config/schema/car';
 import type { CarInput } from '../physics/carPhysics';
 import type { TrackDefinition } from '../config/schema/track';
@@ -35,6 +36,7 @@ export class RaceScene extends Phaser.Scene {
   private lapTracker!: LapTracker;
   private hud!: RaceHud;
   private nextTargetIndicator!: NextTargetIndicator;
+  private audio!: RaceAudio;
   private raceElapsedMs = 0;
   private sceneData!: RaceSceneData;
 
@@ -74,6 +76,7 @@ export class RaceScene extends Phaser.Scene {
     this.lapTracker = new LapTracker(this.track.waypoints, this.track.laps, this.track.tileSize * 2.5);
     this.hud = new RaceHud(this, () => this.restartRace());
     this.nextTargetIndicator = new NextTargetIndicator(this);
+    this.audio = new RaceAudio(this);
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -89,6 +92,11 @@ export class RaceScene extends Phaser.Scene {
       this.touchControls.destroy();
       this.settingsMenu.destroy();
       this.nextTargetIndicator.destroy();
+      // scene.restart() (botón de reinicio) dispara SHUTDOWN antes de volver
+      // a llamar a create(): si no se destruye aquí, el motor/derrape de la
+      // carrera anterior se quedarían sonando en bucle indefinidamente,
+      // superpuestos con los nuevos.
+      this.audio.destroy();
       this.unsubscribeSettings?.();
     });
   }
@@ -106,9 +114,9 @@ export class RaceScene extends Phaser.Scene {
   update(_time: number, deltaMs: number): void {
     if (this.settingsMenu.isOpen) return;
 
-    const state = this.lapTracker.getState();
+    const wasFinished = this.lapTracker.getState().finished;
 
-    if (state.finished) {
+    if (wasFinished) {
       // Carrera terminada: el coche se congela donde esté (no se procesa
       // más física ni entrada) y se oculta el indicador de objetivo.
       this.nextTargetIndicator.hide();
@@ -130,6 +138,7 @@ export class RaceScene extends Phaser.Scene {
         });
       }
 
+      const previousTargetIndex = this.lapTracker.nextTargetIndex;
       this.lapTracker.update(
         this.car.state.x,
         this.car.state.y,
@@ -137,6 +146,15 @@ export class RaceScene extends Phaser.Scene {
         this.car.state.vy,
         this.raceElapsedMs,
       );
+      if (this.lapTracker.nextTargetIndex !== previousTargetIndex) {
+        this.audio.playCheckpoint();
+      }
+      if (this.lapTracker.getState().finished) {
+        this.audio.playFinish();
+      }
+
+      const speed = Math.hypot(this.car.state.vx, this.car.state.vy);
+      this.audio.update(speed, this.car.maxSpeed, this.car.isSkidding);
 
       const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
       this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);

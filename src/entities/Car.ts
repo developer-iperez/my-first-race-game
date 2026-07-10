@@ -37,6 +37,16 @@ export class Car {
     this.physics = physics;
   }
 
+  /** Velocidad máxima efectiva actual (según dificultad), para normalizar el sonido de motor. */
+  get maxSpeed(): number {
+    return this.physics.maxSpeed;
+  }
+
+  /** Si el coche está derrapando ahora mismo (para el sonido de derrape). */
+  get isSkidding(): boolean {
+    return isSkidding(this.state);
+  }
+
   update(dt: number, input: CarInput, surfaceGrip = 1): void {
     this.setState(stepCarPhysics(this.state, input, this.physics, dt, surfaceGrip));
   }

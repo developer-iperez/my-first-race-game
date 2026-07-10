@@ -35,11 +35,12 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Fase de fin de carrera: coche se congela al completar las vueltas,
   botón para volver a empezar
 
-## v0.3 — Estética 90s 🟨
+## v0.3 — Estética 90s ✅
 - ✅ Pixel art del coche y el circuito (sprites generados: coche, asfalto,
   hierba, arena, muro a rayas)
 - ✅ HUD retro (marcador con marco pixelado estilo arcade, iconos por línea)
-- ⬜ Audio (motor, derrape, checkpoint)
+- ✅ Audio (motor en bucle con tono/volumen por velocidad, derrape,
+  checkpoint y fanfarria de meta — sintetizado, sin bancos externos)
 
 ## v0.4 — Pulido y feel ⬜
 - ⬜ Partículas de derrape

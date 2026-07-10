@@ -24,6 +24,13 @@ export class BootScene extends Phaser.Scene {
     this.load.image('tile-grass', 'tiles/grass.png');
     this.load.image('tile-sand', 'tiles/sand.png');
     this.load.image('tile-wall', 'tiles/wall.png');
+
+    // Efectos de sonido sintetizados (v0.3), sin depender de bancos de
+    // audio externos: motor (bucle), derrape (bucle), checkpoint y meta.
+    this.load.audio('sfx-engine', 'audio/engine.wav');
+    this.load.audio('sfx-skid', 'audio/skid.wav');
+    this.load.audio('sfx-checkpoint', 'audio/checkpoint.wav');
+    this.load.audio('sfx-finish', 'audio/finish.wav');
   }
 
   create(): void {

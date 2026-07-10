@@ -156,7 +156,7 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   velocidad y que dar toda la vuelta al revés no cuenta como vuelta válida.
 
 ### Added
-- **v0.3 (en curso): pixel art real**, generado por script (`Pillow`) en vez
+- **v0.3 completa: pixel art real**, generado por script (`Pillow`) en vez
   de los rectángulos de color plano de v0.1-v0.2:
   - `public/cars/rally-hatch.png`: coche 24×12 (mismo tamaño que
     `physics.length/width`), morro apuntando a +x, con cabina, morro y
@@ -178,3 +178,24 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   diferenciarlas de un vistazo. El panel de "¡META!" usa borde rojo y el
   botón de reinicio pasa a `► VOLVER A EMPEZAR ◄`, más en línea con un
   marcador de máquina recreativa.
+- **Audio**, sintetizado con un script Python (`wave`/`struct`, sin
+  dependencias ni bancos de sonido externos) — `public/audio/{engine,skid,
+  checkpoint,finish}.wav`:
+  - Motor en bucle desde que empieza la carrera; volumen y tono
+    (`setRate`) escalan con `speed / car.maxSpeed` cada frame, así que
+    suena distinto acelerando a fondo que al ralentí.
+  - Derrape en bucle mientras `car.isSkidding` es `true` (nuevo getter en
+    `Car`, reutiliza la misma función pura que ya se usaba para el tinte
+    visual), se para en cuanto deja de derrapar.
+  - Blip de checkpoint cada vez que `LapTracker.nextTargetIndex` cambia
+    (cualquier checkpoint, incluida la propia meta) y fanfarria de meta
+    (que además corta los bucles de motor/derrape) al completar la
+    carrera.
+  - `src/race/RaceAudio.ts` centraliza la gestión; se destruye en el
+    `SHUTDOWN` de la escena para que un reinicio (`scene.restart()`) no
+    deje el motor de la carrera anterior sonando en bucle superpuesto con
+    el nuevo.
+  - Verificado en Chromium: sin errores de consola conduciendo, y
+    comprobado por API directa que el motor responde a la velocidad y que
+    el derrape se enciende/apaga exactamente una vez por transición (no
+    se reinicia en cada frame mientras dura).
