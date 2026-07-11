@@ -112,7 +112,11 @@ export class RaceScene extends Phaser.Scene {
     // teclado en readInput(), así que ambos funcionan a la vez.
     this.touchControls = new TouchControls(document.body);
     this.settingsMenu = new SettingsMenu(document.body);
-    this.unsubscribeSettings = Settings.onChange(() => this.applyDifficulty());
+    this.applySound();
+    this.unsubscribeSettings = Settings.onChange(() => {
+      this.applyDifficulty();
+      this.applySound();
+    });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.touchControls.destroy();
@@ -132,6 +136,14 @@ export class RaceScene extends Phaser.Scene {
   private applyDifficulty(): void {
     const { difficulty } = Settings.get();
     this.car.setPhysics(applyDifficultyToPhysics(this.carDefinition.physics, difficulty));
+  }
+
+  // El gestor de sonido (this.sound) es una única instancia compartida por
+  // todo el juego (no una por escena): silenciarlo aquí también afecta a la
+  // pantalla de título. Se aplica igual en TitleScene por si el ajuste
+  // cambia estando ahí.
+  private applySound(): void {
+    this.sound.mute = !Settings.get().soundEnabled;
   }
 
   /** Reinicia la carrera desde cero: mismo circuito y coche, todo el estado limpio. */

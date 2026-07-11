@@ -2,6 +2,7 @@ import type { Difficulty } from './difficulty';
 
 export interface GameSettings {
   difficulty: Difficulty;
+  soundEnabled: boolean;
   // Futuros ajustes (volumen, layout de controles, coche elegido...) se
   // añaden aquí como una clave más; el resto del sistema (persistencia,
   // pub-sub, menú) no cambia.
@@ -11,6 +12,7 @@ const STORAGE_KEY = 'rally90s:settings';
 
 const DEFAULTS: GameSettings = {
   difficulty: 'normal',
+  soundEnabled: true,
 };
 
 /**

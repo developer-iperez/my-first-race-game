@@ -88,11 +88,31 @@ export class SettingsMenu {
     this.panel.appendChild(header);
 
     this.panel.appendChild(this.buildDifficultyRow(settings));
+    this.panel.appendChild(this.buildSoundRow(settings));
     if (isFullscreenSupported()) {
       this.panel.appendChild(this.buildFullscreenRow());
     }
 
     // Futuros ajustes: añadir aquí más filas con this.panel.appendChild(...).
+  }
+
+  private buildSoundRow(settings: GameSettings): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+
+    const label = document.createElement('div');
+    label.className = 'settings-row__label';
+    label.textContent = 'Sonido';
+    row.appendChild(label);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'settings-option settings-option--wide';
+    btn.textContent = settings.soundEnabled ? 'Sonido activado 🔊' : 'Sonido desactivado 🔇';
+    btn.addEventListener('click', () => Settings.update({ soundEnabled: !settings.soundEnabled }));
+    row.appendChild(btn);
+
+    return row;
   }
 
   private buildFullscreenRow(): HTMLElement {

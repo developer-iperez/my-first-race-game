@@ -97,7 +97,11 @@ export class TitleScene extends Phaser.Scene {
 
     // Ajustes (⚙️) también aquí: elegir dificultad antes de correr.
     this.settingsMenu = new SettingsMenu(document.body);
-    this.unsubscribeSettings = Settings.onChange(() => this.refreshDifficultyLabel());
+    this.applySound();
+    this.unsubscribeSettings = Settings.onChange(() => {
+      this.refreshDifficultyLabel();
+      this.applySound();
+    });
 
     // Empezar con cualquier tecla o toque (salvo si el menú de ajustes está
     // abierto: ahí el toque/tecla es para el propio menú).
@@ -113,6 +117,14 @@ export class TitleScene extends Phaser.Scene {
   private refreshDifficultyLabel(): void {
     const { difficulty } = Settings.get();
     this.difficultyText.setText(`Dificultad: ${DIFFICULTY_PRESETS[difficulty].label}  (⚙️ para cambiar)`);
+  }
+
+  // El gestor de sonido (this.sound) es una única instancia compartida por
+  // todo el juego (no una por escena), así que silenciarlo aquí también
+  // afecta a la carrera; se aplica igual en RaceScene para que el ajuste
+  // se refleje esté donde esté el jugador cuando lo cambie.
+  private applySound(): void {
+    this.sound.mute = !Settings.get().soundEnabled;
   }
 
   private start(): void {

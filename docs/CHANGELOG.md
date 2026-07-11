@@ -490,3 +490,21 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     nueva) el récord aparece ya sembrado en el HUD antes de completar
     ninguna vuelta; y una vuelta más lenta que el récord guardado no lo
     sobrescribe.
+
+### Added
+- Opción de **sonido** en el menú de ajustes (⚙️): activar/desactivar
+  todo el audio del juego con un botón, junto a dificultad y pantalla
+  completa. `soundEnabled` en `Settings` (persiste en `localStorage`,
+  igual que el resto de ajustes). Se aplica silenciando el gestor de
+  sonido de Phaser (`scene.sound.mute`), que es una única instancia
+  compartida por todo el juego — TitleScene y RaceScene lo sincronizan
+  cada una al crearse y al cambiar el ajuste, así que funciona esté el
+  jugador donde esté cuando lo toque.
+  - Verificado en directo: activar/desactivar desde ajustes cambia
+    `sound.mute` al momento y persiste en `localStorage`; comprobado
+    también que una recarga completa de página respeta el ajuste
+    guardado en cuanto el navegador desbloquea el audio (política de
+    autoplay: el `AudioContext` empieza `suspended` hasta la primera
+    interacción real del jugador, igual que ya pasaba con el motor antes
+    de este cambio — no hay audio posible antes de esa interacción de
+    todos modos, así que no afecta a la experiencia real).
