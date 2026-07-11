@@ -7,7 +7,7 @@ import { Car } from '../entities/Car';
 import { TouchControls } from '../input/TouchControls';
 import { SettingsMenu } from '../settings/SettingsMenu';
 import { Settings } from '../settings/Settings';
-import { applyDifficultyToPhysics } from '../settings/difficulty';
+import { applyTuningToPhysics } from '../settings/carTuning';
 import { BestLaps } from '../race/BestLaps';
 import { LapTracker } from '../race/LapTracker';
 import { RaceHud } from '../race/RaceHud';
@@ -79,7 +79,7 @@ export class RaceScene extends Phaser.Scene {
       vx: 0,
       vy: 0,
     });
-    this.applyDifficulty();
+    this.applyCarTuning();
 
     // Radio de activación generoso (arcade, no simulación): el circuito no
     // es tan ancho como para que el jugador tenga que pasar por el centro
@@ -114,7 +114,7 @@ export class RaceScene extends Phaser.Scene {
     this.settingsMenu = new SettingsMenu(document.body);
     this.applySound();
     this.unsubscribeSettings = Settings.onChange(() => {
-      this.applyDifficulty();
+      this.applyCarTuning();
       this.applySound();
     });
 
@@ -133,9 +133,11 @@ export class RaceScene extends Phaser.Scene {
     });
   }
 
-  private applyDifficulty(): void {
-    const { difficulty } = Settings.get();
-    this.car.setPhysics(applyDifficultyToPhysics(this.carDefinition.physics, difficulty));
+  private applyCarTuning(): void {
+    const { speedFactor, accelFactor, gripFactor } = Settings.get();
+    this.car.setPhysics(
+      applyTuningToPhysics(this.carDefinition.physics, { speedFactor, accelFactor, gripFactor }),
+    );
   }
 
   // El gestor de sonido (this.sound) es una única instancia compartida por

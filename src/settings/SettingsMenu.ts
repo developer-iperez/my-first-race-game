@@ -1,19 +1,36 @@
 import { Settings, type GameSettings } from './Settings';
-import { DIFFICULTY_LEVELS, DIFFICULTY_PRESETS } from './difficulty';
+import { CAR_TUNING_BOUNDS, type CarTuning } from './carTuning';
 import { isFullscreenActive, isFullscreenSupported, toggleFullscreen } from './Fullscreen';
+
+function formatTuningValue(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
 
 /**
  * Menú de ajustes del jugador: un botón (⚙️) que abre un panel modal.
- * Pensado para crecer — añadir un ajuste nuevo es añadir una fila en
- * render() y una clave en GameSettings, sin tocar nada más del juego.
+ * Pensado para crecer — añadir un ajuste nuevo es una fila más en
+ * buildPanel() y una clave en GameSettings, sin tocar nada más del juego.
+ *
+ * El panel se construye UNA sola vez (no se destruye/recrea en cada
+ * cambio): los sliders son elementos <input type="range"> nativos, y
+ * sustituir su nodo del DOM a mitad de un arrastre (como hacía la versión
+ * anterior, con un `render()` que volvía a montar todo el panel en cada
+ * `Settings.onChange`) corta el gesto de arrastre del navegador. En su
+ * lugar, `refresh()` solo actualiza el valor/texto de los controles ya
+ * existentes.
  */
 export class SettingsMenu {
   private readonly button: HTMLButtonElement;
   private readonly overlay: HTMLDivElement;
   private readonly panel: HTMLDivElement;
   private readonly unsubscribe: () => void;
-  private readonly onFullscreenChange = (): void => this.render();
+  private readonly onFullscreenChange = (): void => this.refresh();
   private _isOpen = false;
+
+  private readonly sliderInputs = {} as Record<keyof CarTuning, HTMLInputElement>;
+  private readonly sliderValueTexts = {} as Record<keyof CarTuning, HTMLSpanElement>;
+  private soundButton?: HTMLButtonElement;
+  private fullscreenButton?: HTMLButtonElement;
 
   constructor(parent: HTMLElement) {
     this.button = document.createElement('button');
@@ -42,8 +59,9 @@ export class SettingsMenu {
     parent.appendChild(this.button);
     parent.appendChild(this.overlay);
 
-    this.render();
-    this.unsubscribe = Settings.onChange(() => this.render());
+    this.buildPanel();
+    this.refresh();
+    this.unsubscribe = Settings.onChange(() => this.refresh());
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
     document.addEventListener('webkitfullscreenchange', this.onFullscreenChange);
   }
@@ -70,10 +88,7 @@ export class SettingsMenu {
     this.overlay.remove();
   }
 
-  private render(): void {
-    const settings = Settings.get();
-    this.panel.innerHTML = '';
-
+  private buildPanel(): void {
     const header = document.createElement('div');
     header.className = 'settings-panel__header';
     const title = document.createElement('h2');
@@ -87,16 +102,36 @@ export class SettingsMenu {
     header.append(title, closeBtn);
     this.panel.appendChild(header);
 
-    this.panel.appendChild(this.buildDifficultyRow(settings));
-    this.panel.appendChild(this.buildSoundRow(settings));
+    for (const key of Object.keys(CAR_TUNING_BOUNDS) as (keyof CarTuning)[]) {
+      this.panel.appendChild(this.buildTuningSliderRow(key));
+    }
+    this.panel.appendChild(this.buildSoundRow());
     if (isFullscreenSupported()) {
       this.panel.appendChild(this.buildFullscreenRow());
     }
 
-    // Futuros ajustes: añadir aquí más filas con this.panel.appendChild(...).
+    // Futuros ajustes: añadir aquí más filas con this.panel.appendChild(...),
+    // y su actualización correspondiente en refresh().
   }
 
-  private buildSoundRow(settings: GameSettings): HTMLElement {
+  /** Vuelve a reflejar el estado actual en los controles ya construidos, sin recrear ningún nodo del DOM. */
+  private refresh(): void {
+    const settings = Settings.get();
+
+    for (const key of Object.keys(CAR_TUNING_BOUNDS) as (keyof CarTuning)[]) {
+      this.sliderInputs[key].value = String(settings[key]);
+      this.sliderValueTexts[key].textContent = formatTuningValue(settings[key]);
+    }
+
+    if (this.soundButton) {
+      this.soundButton.textContent = settings.soundEnabled ? 'Sonido activado 🔊' : 'Sonido desactivado 🔇';
+    }
+    if (this.fullscreenButton) {
+      this.fullscreenButton.textContent = isFullscreenActive() ? 'Salir de pantalla completa' : 'Pantalla completa';
+    }
+  }
+
+  private buildSoundRow(): HTMLElement {
     const row = document.createElement('div');
     row.className = 'settings-row';
 
@@ -108,9 +143,9 @@ export class SettingsMenu {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'settings-option settings-option--wide';
-    btn.textContent = settings.soundEnabled ? 'Sonido activado 🔊' : 'Sonido desactivado 🔇';
-    btn.addEventListener('click', () => Settings.update({ soundEnabled: !settings.soundEnabled }));
+    btn.addEventListener('click', () => Settings.update({ soundEnabled: !Settings.get().soundEnabled }));
     row.appendChild(btn);
+    this.soundButton = btn;
 
     return row;
   }
@@ -127,7 +162,6 @@ export class SettingsMenu {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'settings-option settings-option--wide';
-    btn.textContent = isFullscreenActive() ? 'Salir de pantalla completa' : 'Pantalla completa';
     btn.addEventListener('click', () => {
       toggleFullscreen().catch(() => {
         // Algunos navegadores (p. ej. Safari en iPhone) no soportan la
@@ -135,31 +169,42 @@ export class SettingsMenu {
       });
     });
     row.appendChild(btn);
+    this.fullscreenButton = btn;
 
     return row;
   }
 
-  private buildDifficultyRow(settings: GameSettings): HTMLElement {
+  /** Un slider de conducción (velocidad máxima / aceleración / agarre), leyendo sus límites de CAR_TUNING_BOUNDS. */
+  private buildTuningSliderRow(key: keyof CarTuning): HTMLElement {
+    const bounds = CAR_TUNING_BOUNDS[key];
+
     const row = document.createElement('div');
     row.className = 'settings-row';
 
     const label = document.createElement('div');
-    label.className = 'settings-row__label';
-    label.textContent = 'Dificultad (aceleración y velocidad)';
+    label.className = 'settings-row__label settings-row__label--slider';
+    const labelText = document.createElement('span');
+    labelText.textContent = bounds.label;
+    const valueText = document.createElement('span');
+    valueText.className = 'settings-row__value';
+    label.append(labelText, valueText);
     row.appendChild(label);
+    this.sliderValueTexts[key] = valueText;
 
-    const options = document.createElement('div');
-    options.className = 'settings-row__options';
-    for (const level of DIFFICULTY_LEVELS) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = DIFFICULTY_PRESETS[level].label;
-      btn.className =
-        'settings-option' + (settings.difficulty === level ? ' is-selected' : '');
-      btn.addEventListener('click', () => Settings.update({ difficulty: level }));
-      options.appendChild(btn);
-    }
-    row.appendChild(options);
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'settings-slider';
+    slider.min = String(bounds.min);
+    slider.max = String(bounds.max);
+    slider.step = String(bounds.step);
+    // 'input' (no 'change'): se aplica en caliente mientras se arrastra, igual
+    // que el resto de ajustes reactivos del juego. refresh() ya se encarga de
+    // reflejar el valor final tras el Settings.update() que dispara esto.
+    slider.addEventListener('input', () => {
+      Settings.update({ [key]: Number(slider.value) } as Partial<GameSettings>);
+    });
+    row.appendChild(slider);
+    this.sliderInputs[key] = slider;
 
     return row;
   }

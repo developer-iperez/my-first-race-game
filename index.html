@@ -188,6 +188,20 @@
         width: 100%;
         padding: 12px;
       }
+      .settings-row__label--slider {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .settings-row__value {
+        color: #ffcc00;
+        font-variant-numeric: tabular-nums;
+      }
+      .settings-slider {
+        width: 100%;
+        accent-color: #ffcc00;
+        touch-action: pan-y;
+      }
 
       /* El circuito es panorámico (F3: se ve completo, sin scroll): en
          vertical el canvas queda diminuto. En móvil/tablet (pointer: coarse)

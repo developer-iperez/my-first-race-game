@@ -508,3 +508,40 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     interacción real del jugador, igual que ya pasaba con el motor antes
     de este cambio — no hay audio posible antes de esa interacción de
     todos modos, así que no afecta a la experiencia real).
+
+### Changed
+- Sustituidos los niveles de "Dificultad" (Fácil/Normal/Difícil) por tres
+  sliders continuos en el menú de ajustes: **velocidad máxima**,
+  **aceleración** y **agarre** (curva/derrape) — cada uno una fracción
+  del propio valor del coche activo (`src/settings/carTuning.ts`, mismo
+  principio de "coche definido por datos" que ya seguía la dificultad).
+  - Límites pensados para que el coche siga cabiendo en las curvas de
+    este circuito en todo el rango del slider (el radio de giro mínimo
+    es proporcional a la velocidad máxima, ver el rebalanceo de
+    dificultad más arriba): velocidad máxima 30%–85%, aceleración
+    30%–100%. El agarre es un ajuste nuevo (antes no existía ningún
+    control sobre él): 55%–110% del agarre lateral del coche, con 100%
+    por defecto (agarre igual al de siempre, sin cambios). Los valores
+    por defecto de velocidad/aceleración (60%/60%) reproducen la
+    sensación de la antigua dificultad "Normal".
+  - `Settings`/`GameSettings` cambia `difficulty: Difficulty` por los
+    tres factores directamente (`speedFactor`, `accelFactor`,
+    `gripFactor`), persistidos igual que el resto de ajustes.
+  - `SettingsMenu` se reescribe para construir el panel **una sola vez**
+    en vez de destruirlo y reconstruirlo en cada cambio de ajuste (como
+    hacía antes): con sliders nativos (`<input type="range">`), volver a
+    montar el DOM a mitad de un arrastre corta el gesto del navegador.
+    Ahora los cambios se reflejan actualizando el valor/texto de los
+    controles ya existentes, sin recrear ningún nodo — verificado en
+    directo simulando una secuencia de eventos `input` (como un
+    arrastre real) y comprobando que el nodo del slider es el mismo
+    antes y después.
+  - Verificado en directo de punta a punta: valores y límites de cada
+    slider al abrir ajustes; arrastrar un slider actualiza la física del
+    coche en plena carrera (`car.maxSpeed` cambia al momento); el ajuste
+    de sonido (ronda anterior) sigue funcionando igual tras la
+    reescritura del menú.
+  - `tests/difficulty.test.ts` eliminado (probaba `applyDifficultyToPhysics`,
+    que ya no existe); sustituido por `tests/carTuning.test.ts`, con
+    cobertura equivalente más una comprobación de que el extremo superior
+    de velocidad máxima mantiene un radio de giro tomable en este circuito.

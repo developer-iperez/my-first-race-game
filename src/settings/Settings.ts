@@ -1,7 +1,6 @@
-import type { Difficulty } from './difficulty';
+import { DEFAULT_CAR_TUNING, type CarTuning } from './carTuning';
 
-export interface GameSettings {
-  difficulty: Difficulty;
+export interface GameSettings extends CarTuning {
   soundEnabled: boolean;
   // Futuros ajustes (volumen, layout de controles, coche elegido...) se
   // añaden aquí como una clave más; el resto del sistema (persistencia,
@@ -11,7 +10,7 @@ export interface GameSettings {
 const STORAGE_KEY = 'rally90s:settings';
 
 const DEFAULTS: GameSettings = {
-  difficulty: 'normal',
+  ...DEFAULT_CAR_TUNING,
   soundEnabled: true,
 };
 

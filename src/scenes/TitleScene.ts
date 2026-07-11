@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { SettingsMenu } from '../settings/SettingsMenu';
 import { Settings } from '../settings/Settings';
-import { DIFFICULTY_PRESETS } from '../settings/difficulty';
 
 interface TitleSceneData {
   trackKey: string;
@@ -12,14 +11,13 @@ const CHECKER_SQUARE = 8;
 
 /**
  * Pantalla de inicio: título del juego y "pulsa para empezar". Deja abrir
- * los ajustes (⚙️) para elegir dificultad antes de arrancar, y el primer
+ * los ajustes (⚙️) para tunear la conducción antes de arrancar, y el primer
  * toque/tecla que inicia la carrera sirve además para desbloquear el audio
  * del navegador (que bloquea el sonido hasta la primera interacción).
  */
 export class TitleScene extends Phaser.Scene {
   private settingsMenu!: SettingsMenu;
   private sceneData!: TitleSceneData;
-  private difficultyText!: Phaser.GameObjects.Text;
   private started = false;
   private unsubscribeSettings?: () => void;
 
@@ -83,9 +81,9 @@ export class TitleScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    // Dificultad actual (se puede cambiar en ⚙️ antes de empezar).
-    this.difficultyText = this.add
-      .text(width / 2, height - 12, '', {
+    // Pista hacia los ajustes (velocidad/aceleración/agarre y sonido).
+    this.add
+      .text(width / 2, height - 12, '⚙️ AJUSTES DE CONDUCCIÓN', {
         fontFamily: 'monospace',
         fontSize: '9px',
         color: '#ffcc00',
@@ -93,15 +91,11 @@ export class TitleScene extends Phaser.Scene {
         strokeThickness: 3,
       })
       .setOrigin(0.5);
-    this.refreshDifficultyLabel();
 
-    // Ajustes (⚙️) también aquí: elegir dificultad antes de correr.
+    // Ajustes (⚙️) también aquí: tunear la conducción antes de correr.
     this.settingsMenu = new SettingsMenu(document.body);
     this.applySound();
-    this.unsubscribeSettings = Settings.onChange(() => {
-      this.refreshDifficultyLabel();
-      this.applySound();
-    });
+    this.unsubscribeSettings = Settings.onChange(() => this.applySound());
 
     // Empezar con cualquier tecla o toque (salvo si el menú de ajustes está
     // abierto: ahí el toque/tecla es para el propio menú).
@@ -112,11 +106,6 @@ export class TitleScene extends Phaser.Scene {
       this.settingsMenu.destroy();
       this.unsubscribeSettings?.();
     });
-  }
-
-  private refreshDifficultyLabel(): void {
-    const { difficulty } = Settings.get();
-    this.difficultyText.setText(`Dificultad: ${DIFFICULTY_PRESETS[difficulty].label}  (⚙️ para cambiar)`);
   }
 
   // El gestor de sonido (this.sound) es una única instancia compartida por
