@@ -8,6 +8,7 @@ import { TouchControls } from '../input/TouchControls';
 import { SettingsMenu } from '../settings/SettingsMenu';
 import { Settings } from '../settings/Settings';
 import { applyDifficultyToPhysics } from '../settings/difficulty';
+import { BestLaps } from '../race/BestLaps';
 import { LapTracker } from '../race/LapTracker';
 import { RaceHud } from '../race/RaceHud';
 import { NextTargetIndicator } from '../race/NextTargetIndicator';
@@ -83,7 +84,17 @@ export class RaceScene extends Phaser.Scene {
     // Radio de activación generoso (arcade, no simulación): el circuito no
     // es tan ancho como para que el jugador tenga que pasar por el centro
     // exacto de cada checkpoint.
-    this.lapTracker = new LapTracker(this.track.waypoints, this.track.laps, this.track.tileSize * 2.5);
+    //
+    // La mejor vuelta se siembra desde localStorage (BestLaps, por
+    // circuito+coche) para que "🏆 mejor vuelta" muestre el récord de
+    // siempre desde el primer frame, no solo el de esta sesión.
+    const savedBestLapMs = BestLaps.get(data.trackKey, data.carKey);
+    this.lapTracker = new LapTracker(
+      this.track.waypoints,
+      this.track.laps,
+      this.track.tileSize * 2.5,
+      savedBestLapMs,
+    );
     this.hud = new RaceHud(this, () => this.restartRace());
     this.nextTargetIndicator = new NextTargetIndicator(this);
     this.audio = new RaceAudio(this);
@@ -180,6 +191,7 @@ export class RaceScene extends Phaser.Scene {
       });
 
       const previousTargetIndex = this.lapTracker.nextTargetIndex;
+      const previousLastLapMs = this.lapTracker.getState().lastLapMs;
       this.lapTracker.update(
         this.car.state.x,
         this.car.state.y,
@@ -190,7 +202,15 @@ export class RaceScene extends Phaser.Scene {
       if (this.lapTracker.nextTargetIndex !== previousTargetIndex) {
         this.audio.playCheckpoint();
       }
-      if (this.lapTracker.getState().finished) {
+      const lapState = this.lapTracker.getState();
+      if (lapState.lastLapMs !== previousLastLapMs && lapState.bestLapMs !== null) {
+        // Se acaba de completar una vuelta: si es la mejor conseguida hasta
+        // ahora (esta sesión o guardada de antes), persistirla entre
+        // sesiones. reportLap ya comprueba internamente si mejora lo
+        // guardado, así que es seguro llamarlo siempre que se cierra vuelta.
+        BestLaps.reportLap(this.sceneData.trackKey, this.sceneData.carKey, lapState.bestLapMs);
+      }
+      if (lapState.finished) {
         this.audio.playFinish();
       }
 

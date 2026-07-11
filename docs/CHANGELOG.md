@@ -467,3 +467,26 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     mientras se muestran 3/2/1 (aunque se mantenga el acelerador) y se
     suelta en el "¡YA!"; abrir los ajustes en el título no dispara el
     arranque por error, y la dificultad elegida allí se aplica en la carrera.
+
+### Added
+- **Mejor vuelta guardada entre sesiones** (siguiente paso hacia v1.0).
+  - `src/race/BestLaps.ts`: módulo de persistencia en `localStorage`
+    (mismo patrón que `Settings.ts`), una marca por combinación
+    circuito+coche — es progreso del jugador, no parte de la definición
+    del vehículo/trazado (§3.7 de `ANALISIS.md`). `reportLap()` solo
+    sobrescribe el guardado si el tiempo nuevo lo mejora (o no había
+    ninguno), así que es seguro llamarlo cada vez que se completa una
+    vuelta sin comprobarlo antes.
+  - `LapTracker` gana un cuarto parámetro opcional, `initialBestLapMs`,
+    para sembrar `bestLapMs` desde el arranque en vez de empezar siempre
+    en `null` — sigue siendo una clase pura (sin `localStorage` dentro),
+    es `RaceScene` quien lee/escribe `BestLaps` y se lo pasa. Así el
+    marcador "🏆 mejor vuelta" (ya existente en el HUD desde v0.2) muestra
+    el récord de siempre desde el primer frame de la carrera, y sigue
+    funcionando igual en los tests existentes de `LapTracker` (parámetro
+    opcional, comportamiento anterior intacto sin él).
+  - Verificado en directo de punta a punta: completar una vuelta guarda
+    el tiempo en `localStorage`; recargando la página entera (sesión
+    nueva) el récord aparece ya sembrado en el HUD antes de completar
+    ninguna vuelta; y una vuelta más lenta que el récord guardado no lo
+    sobrescribe.

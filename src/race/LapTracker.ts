@@ -38,7 +38,7 @@ export class LapTracker {
   private currentLapNumber = 1;
   private lapStartMs = 0;
   private laps: LapRecord[] = [];
-  private bestLapMs: number | null = null;
+  private bestLapMs: number | null;
   private finished = false;
   private readonly expectedDirections: { x: number; y: number }[];
 
@@ -46,7 +46,15 @@ export class LapTracker {
     private readonly waypoints: readonly Waypoint[],
     private readonly totalLaps: number,
     private readonly triggerRadius: number,
+    /**
+     * Mejor vuelta ya conseguida antes de esta carrera (p. ej. guardada
+     * entre sesiones, ver `BestLaps`), para que `bestLapMs` refleje el
+     * récord real desde el primer frame en vez de empezar en null cada
+     * vez que se reinicia la carrera.
+     */
+    initialBestLapMs: number | null = null,
   ) {
+    this.bestLapMs = initialBestLapMs;
     // El coche sale ya situado en waypoints[0] (start_finish): el primer
     // objetivo es el siguiente punto, no la propia salida.
     this.nextWaypointIndex = waypoints.length > 1 ? 1 : 0;

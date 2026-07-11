@@ -52,6 +52,7 @@ Que *conducir sea divertido* aunque no haya arte final.
 ## v1.0 — Primera versión completa 🟨
 - ✅ Pantalla de inicio (título + "pulsa para empezar", con ajustes de
   dificultad accesibles antes de correr) y cuenta atrás de salida 3·2·1·¡YA!
+- ✅ Mejor vuelta guardada entre sesiones (por circuito+coche)
 - ⬜ Un circuito redondo y divertido
 - ⬜ Publicado en GitHub Pages (y itch.io)
 

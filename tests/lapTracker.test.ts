@@ -53,6 +53,40 @@ describe('LapTracker', () => {
     expect(state.bestLapMs).toBe(2000);
   });
 
+  describe('vuelta previa (guardada entre sesiones, ver BestLaps)', () => {
+    it('reports the seeded best lap from the very first frame, before completing any lap', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS, 3500);
+      expect(tracker.getState().bestLapMs).toBe(3500);
+      expect(tracker.getState().lastLapMs).toBeNull();
+    });
+
+    it('keeps the seeded best lap when a new lap is slower', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS, 3500);
+      driveThroughLap(tracker, 0); // vuelta 1: 4000ms, más lenta que el récord guardado
+      const state = tracker.getState();
+      expect(state.lastLapMs).toBe(4000);
+      expect(state.bestLapMs).toBe(3500);
+    });
+
+    it('replaces the seeded best lap when a new lap beats it', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS, 3500);
+      let t = 0;
+      // vuelta rápida: 500ms por tramo -> 2000ms, mejor que el récord guardado
+      tracker.update(100, 0, SPEED, 0, (t += 500));
+      tracker.update(100, 100, 0, SPEED, (t += 500));
+      tracker.update(0, 100, -SPEED, 0, (t += 500));
+      tracker.update(0, 0, 0, -SPEED, (t += 500));
+      const state = tracker.getState();
+      expect(state.lastLapMs).toBe(2000);
+      expect(state.bestLapMs).toBe(2000);
+    });
+
+    it('with no seed, behaves exactly as before (bestLapMs starts null)', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS);
+      expect(tracker.getState().bestLapMs).toBeNull();
+    });
+  });
+
   it('finishes the race after completing totalLaps laps', () => {
     const tracker = new LapTracker(waypoints, 2, RADIUS);
     let t = driveThroughLap(tracker, 0);
