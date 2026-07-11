@@ -86,5 +86,12 @@ recuperar del historial de commits.
     actualizar valores in-place (antes destruía/recreaba el DOM en cada
     cambio, lo que cortaba el arrastre de un slider nativo a mitad de
     gesto).
+- Fix: el panel de ajustes se salía de pantalla en viewports bajos (móvil
+  en horizontal) sin forma de llegar a las últimas filas. `.settings-panel`
+  gana `max-height` + scroll propio, independiente del scroll de la
+  página (que sigue bloqueada para el juego).
+- Fix: abrir ajustes durante la carrera congela el juego pero no pausaba
+  el motor/derrape (seguían sonando de fondo). `RaceScene` pausa/reanuda
+  todo el audio (`sound.pauseAll`/`resumeAll`) al abrir/cerrar el panel.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

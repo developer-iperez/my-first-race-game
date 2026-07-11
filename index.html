@@ -130,6 +130,15 @@
       }
       .settings-panel {
         width: min(320px, 88vw);
+        /* El panel puede tener más filas de las que caben en pantallas
+           bajas (móvil en horizontal); con scroll propio en vez de
+           desbordar fuera de la vista. Independiente del scroll de la
+           página (html/body tienen touch-action: none para el juego), así
+           que hay que reactivarlo aquí explícitamente para gestos táctiles. */
+        max-height: min(560px, 85vh);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
         background: #1a1a1a;
         border: 2px solid rgba(255, 255, 255, 0.25);
         border-radius: 8px;

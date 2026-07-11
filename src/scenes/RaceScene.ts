@@ -50,6 +50,7 @@ export class RaceScene extends Phaser.Scene {
   private skidParticles!: SkidParticles;
   private raceElapsedMs = 0;
   private sceneData!: RaceSceneData;
+  private wasSettingsMenuOpen = false;
 
   constructor() {
     super('Race');
@@ -60,6 +61,7 @@ export class RaceScene extends Phaser.Scene {
     // instancia: los campos de clase NO se reinician solos, hay que
     // resetearlos aquí a mano o se arrastra el cronómetro de la carrera anterior.
     this.raceElapsedMs = 0;
+    this.wasSettingsMenuOpen = false;
 
     this.sceneData = data;
     this.track = TrackLoader.get(this, data.trackKey);
@@ -154,6 +156,17 @@ export class RaceScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
+    // Abrir los ajustes congela el juego (early return de abajo), pero eso
+    // solo detiene NUESTRA lógica de frame — el motor/derrape de Phaser
+    // siguen sonando en bucle por su cuenta si no se pausan explícitamente.
+    if (this.settingsMenu.isOpen !== this.wasSettingsMenuOpen) {
+      this.wasSettingsMenuOpen = this.settingsMenu.isOpen;
+      if (this.settingsMenu.isOpen) {
+        this.sound.pauseAll();
+      } else {
+        this.sound.resumeAll();
+      }
+    }
     if (this.settingsMenu.isOpen) return;
 
     // Cuenta atrás de salida: mientras muestra 3/2/1 el coche está congelado
