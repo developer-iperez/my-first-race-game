@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
+import { TitleScene } from './scenes/TitleScene';
 import { RaceScene } from './scenes/RaceScene';
 import { showFatalError } from './debug/errorOverlay';
 
@@ -25,7 +26,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: 384,
     height: 224,
   },
-  scene: [BootScene, RaceScene],
+  scene: [BootScene, TitleScene, RaceScene],
 };
 
 try {

@@ -438,3 +438,32 @@ y versionado según [SemVer](https://semver.org/lang/es/).
   body y la barra espaciadora siempre llega al juego. Verificado en
   directo reproduciendo la secuencia abrir/cerrar ajustes y comprobando
   que el espacio activa el freno de mano sin reabrir el menú.
+
+### Added
+- **Pantalla de inicio + cuenta atrás de salida 3·2·1·¡YA!** (primer paso
+  hacia v1.0).
+  - `src/scenes/TitleScene.ts`: nueva escena entre `Boot` y `Race`. Muestra
+    el título ("RALLY 90s"), el coche sobre una parrilla a cuadros y "pulsa
+    para empezar" (arranca con cualquier tecla, toque o clic). Incluye el
+    botón de ajustes (⚙️) para **elegir la dificultad antes de correr**, con
+    la dificultad actual mostrada en pantalla y actualizada en vivo. El
+    primer gesto que inicia la carrera sirve además para **desbloquear el
+    audio** del navegador (que lo bloquea hasta la primera interacción), así
+    que el motor ya suena desde el arranque en vez de quedar mudo hasta el
+    primer toque.
+  - `src/race/RaceCountdown.ts`: al empezar la carrera, el coche queda
+    congelado en la parrilla mientras se muestra "3 · 2 · 1" (con un pitido
+    por número, reutilizando el blip de checkpoint) y arranca en el "¡YA!"
+    (pitido más grave). Durante la cuenta atrás no se procesa entrada ni
+    física y el cronómetro no corre (empieza en el "¡YA!"), pero el
+    indicador del próximo objetivo ya se ve para saber hacia dónde salir. Se
+    recrea en cada `create()`, así que "Volver a empezar" también repite la
+    cuenta atrás. Lógica de tiempos pura (solo depende del dt acumulado),
+    independiente del framerate.
+  - Flujo de escenas: `Boot` → `Title` → `Race` (antes `Boot` → `Race`
+    directo).
+  - Verificado en directo: la pantalla de inicio se muestra al cargar,
+    empezar lleva a la carrera con la cuenta atrás, el coche está congelado
+    mientras se muestran 3/2/1 (aunque se mantenga el acelerador) y se
+    suelta en el "¡YA!"; abrir los ajustes en el título no dispara el
+    arranque por error, y la dificultad elegida allí se aplica en la carrera.

@@ -49,7 +49,9 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Salirse de pista ya no para el coche en seco: fricción fuerte pero
   el coche sigue moviéndose, más fácil recuperar el trazado
 
-## v1.0 — Primera versión completa ⬜
+## v1.0 — Primera versión completa 🟨
+- ✅ Pantalla de inicio (título + "pulsa para empezar", con ajustes de
+  dificultad accesibles antes de correr) y cuenta atrás de salida 3·2·1·¡YA!
 - ⬜ Un circuito redondo y divertido
 - ⬜ Publicado en GitHub Pages (y itch.io)
 

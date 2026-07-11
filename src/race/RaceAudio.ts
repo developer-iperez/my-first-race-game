@@ -40,6 +40,15 @@ export class RaceAudio {
     this.checkpoint.play({ volume: 0.6 });
   }
 
+  /**
+   * Pitido de la cuenta atrás de salida. Reutiliza el blip de checkpoint
+   * (sin banco de audio nuevo): agudo y corto en 3/2/1, más grave/fuerte en
+   * el "¡YA!" para marcar la salida.
+   */
+  playCountdownBeep(final: boolean): void {
+    this.checkpoint.play({ volume: final ? 0.75 : 0.5, rate: final ? 1.5 : 1 });
+  }
+
   /** Fanfarria de meta; corta los bucles de motor/derrape (el coche se congela). */
   playFinish(): void {
     this.finish.play({ volume: 0.7 });

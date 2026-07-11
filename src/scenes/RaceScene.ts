@@ -12,6 +12,7 @@ import { LapTracker } from '../race/LapTracker';
 import { RaceHud } from '../race/RaceHud';
 import { NextTargetIndicator } from '../race/NextTargetIndicator';
 import { RaceAudio } from '../race/RaceAudio';
+import { RaceCountdown } from '../race/RaceCountdown';
 import { SkidParticles } from '../race/SkidParticles';
 import type { CarDefinition } from '../config/schema/car';
 import { frameRateIndependentDecay, type CarInput } from '../physics/carPhysics';
@@ -44,6 +45,7 @@ export class RaceScene extends Phaser.Scene {
   private hud!: RaceHud;
   private nextTargetIndicator!: NextTargetIndicator;
   private audio!: RaceAudio;
+  private countdown!: RaceCountdown;
   private skidParticles!: SkidParticles;
   private raceElapsedMs = 0;
   private sceneData!: RaceSceneData;
@@ -86,6 +88,10 @@ export class RaceScene extends Phaser.Scene {
     this.nextTargetIndicator = new NextTargetIndicator(this);
     this.audio = new RaceAudio(this);
     this.skidParticles = new SkidParticles(this);
+    // Cuenta atrás de salida: el coche queda congelado en la parrilla hasta
+    // el "¡YA!". Se recrea en cada create(), así que "Volver a empezar"
+    // (scene.restart) también repite la cuenta atrás.
+    this.countdown = new RaceCountdown(this, (final) => this.audio.playCountdownBeep(final));
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -101,6 +107,7 @@ export class RaceScene extends Phaser.Scene {
       this.touchControls.destroy();
       this.settingsMenu.destroy();
       this.nextTargetIndicator.destroy();
+      this.countdown.destroy();
       this.skidParticles.destroy();
       // scene.restart() (botón de reinicio) dispara SHUTDOWN antes de volver
       // a llamar a create(): si no se destruye aquí, el motor/derrape de la
@@ -123,6 +130,17 @@ export class RaceScene extends Phaser.Scene {
 
   update(_time: number, deltaMs: number): void {
     if (this.settingsMenu.isOpen) return;
+
+    // Cuenta atrás de salida: mientras muestra 3/2/1 el coche está congelado
+    // en la parrilla — no se procesa entrada ni física, ni corre el crono
+    // (que arranca en el "¡YA!"). El indicador de objetivo sí se muestra ya,
+    // para saber hacia dónde salir.
+    if (this.countdown.update(deltaMs)) {
+      const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
+      this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, _time);
+      this.hud.update(this.lapTracker.getState(), 0);
+      return;
+    }
 
     const wasFinished = this.lapTracker.getState().finished;
 

@@ -35,6 +35,6 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.scene.start('Race', { trackKey: 'track:rally-01', carKey: 'car:rally-hatch' });
+    this.scene.start('Title', { trackKey: 'track:rally-01', carKey: 'car:rally-hatch' });
   }
 }
