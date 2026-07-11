@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { TrackLoader } from '../track/TrackLoader';
+import { TRACK_CATALOG } from '../track/trackCatalog';
 import { CarLoader } from '../entities/CarLoader';
 
 /**
- * Precarga los datos (JSON) del circuito y el coche de la v1. Cuando haya
- * selector de circuito/vehículo, esta escena pasará a recibir las keys/urls
- * a cargar en vez de tenerlas fijas.
+ * Precarga los datos (JSON) de todos los circuitos del catálogo y del
+ * coche. Con un solo coche, se precarga aquí directamente; cuando haya
+ * selector de vehículo, seguiría el mismo patrón que TRACK_CATALOG.
  */
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -13,7 +14,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    TrackLoader.enqueue(this, 'track:rally-01', 'tracks/rally-01.json');
+    for (const track of TRACK_CATALOG) {
+      TrackLoader.enqueue(this, track.key, track.path);
+    }
     CarLoader.enqueue(this, 'car:rally-hatch', 'cars/rally-hatch.json');
 
     // Sprites de pixel art (v0.3). Con un solo coche/circuito, se precargan
@@ -35,6 +38,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.scene.start('Title', { trackKey: 'track:rally-01', carKey: 'car:rally-hatch' });
+    // El circuito lo decide el jugador en el título (Settings.trackKey);
+    // aquí solo hace falta el coche, único por ahora.
+    this.scene.start('Title', { carKey: 'car:rally-hatch' });
   }
 }

@@ -93,5 +93,8 @@ recuperar del historial de commits.
 - Fix: abrir ajustes durante la carrera congela el juego pero no pausaba
   el motor/derrape (seguían sonando de fondo). `RaceScene` pausa/reanuda
   todo el audio (`sound.pauseAll`/`resumeAll`) al abrir/cerrar el panel.
+- Selector de circuito en el título (`TRACK_CATALOG`): flechas ◀▶ para
+  elegir, persistido en `Settings.trackKey`. Segundo circuito, "Duna
+  Veloz" (tema desierto, infield de arena), añadido junto al selector.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

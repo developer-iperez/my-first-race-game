@@ -11,7 +11,8 @@ Leyenda: ⬜ pendiente · 🟨 en curso · ✅ hecho
   circuito; se cargan y validan (Zod) desde `public/tracks/*.json` con `schemaVersion`.
 - ✅ **A2 — Coches definidos por datos (JSON)**: peso, potencia, agarre, longitud y
   apariencia en `public/cars/*.json`; añadir vehículos = crear un fichero.
-- ⬜ Editor visual (propio o vía Tiled) y selector multi-circuito/coche: **a futuro**.
+- ✅ Selector de circuito (título, `TRACK_CATALOG`); selector de coche y
+  editor visual (propio o vía Tiled): **a futuro**.
 - ✅ CI/CD activo: cada push a esta rama se despliega y prueba en GitHub Pages.
 
 ## v0.1 — Prototipo jugable ✅

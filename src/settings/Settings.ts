@@ -1,7 +1,9 @@
 import { DEFAULT_CAR_TUNING, type CarTuning } from './carTuning';
+import { TRACK_CATALOG } from '../track/trackCatalog';
 
 export interface GameSettings extends CarTuning {
   soundEnabled: boolean;
+  trackKey: string;
   // Futuros ajustes (volumen, layout de controles, coche elegido...) se
   // añaden aquí como una clave más; el resto del sistema (persistencia,
   // pub-sub, menú) no cambia.
@@ -12,6 +14,7 @@ const STORAGE_KEY = 'rally90s:settings';
 const DEFAULTS: GameSettings = {
   ...DEFAULT_CAR_TUNING,
   soundEnabled: true,
+  trackKey: TRACK_CATALOG[0].key,
 };
 
 /**

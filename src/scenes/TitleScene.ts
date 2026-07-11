@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { SettingsMenu } from '../settings/SettingsMenu';
 import { Settings } from '../settings/Settings';
+import { TRACK_CATALOG } from '../track/trackCatalog';
 
 interface TitleSceneData {
-  trackKey: string;
   carKey: string;
 }
 
@@ -18,6 +18,7 @@ const CHECKER_SQUARE = 8;
 export class TitleScene extends Phaser.Scene {
   private settingsMenu!: SettingsMenu;
   private sceneData!: TitleSceneData;
+  private trackLabel!: Phaser.GameObjects.Text;
   private started = false;
   private unsubscribeSettings?: () => void;
 
@@ -40,6 +41,39 @@ export class TitleScene extends Phaser.Scene {
       .image(width / 2, height / 2 + 8, 'car-sprite')
       .setDisplaySize(48, 24)
       .setAngle(-90);
+
+    // Selector de circuito: flechas interactivas + nombre del elegido
+    // (persistido en Settings.trackKey). Flechas suficientemente grandes
+    // para tocar con el dedo en móvil.
+    const trackRowY = 94;
+    this.trackLabel = this.add
+      .text(width / 2, trackRowY, '', {
+        fontFamily: 'monospace',
+        fontSize: '11px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
+    this.refreshTrackLabel();
+
+    const arrowStyle = {
+      fontFamily: 'monospace',
+      fontSize: '18px',
+      color: '#ffcc00',
+      stroke: '#000000',
+      strokeThickness: 4,
+    };
+    this.add
+      .text(width / 2 - 78, trackRowY, '◀', arrowStyle)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.cycleTrack(-1));
+    this.add
+      .text(width / 2 + 78, trackRowY, '▶', arrowStyle)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.cycleTrack(1));
 
     // Título del juego (mismo nombre que <title> del index.html).
     this.add
@@ -95,12 +129,18 @@ export class TitleScene extends Phaser.Scene {
     // Ajustes (⚙️) también aquí: tunear la conducción antes de correr.
     this.settingsMenu = new SettingsMenu(document.body);
     this.applySound();
-    this.unsubscribeSettings = Settings.onChange(() => this.applySound());
+    this.unsubscribeSettings = Settings.onChange(() => {
+      this.applySound();
+      this.refreshTrackLabel();
+    });
 
     // Empezar con cualquier tecla o toque (salvo si el menú de ajustes está
-    // abierto: ahí el toque/tecla es para el propio menú).
+    // abierto, o si el toque fue sobre una flecha del selector de circuito:
+    // currentlyOver trae los game objects interactivos bajo el puntero).
     this.input.keyboard?.on('keydown', () => this.start());
-    this.input.on('pointerdown', () => this.start());
+    this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+      if (currentlyOver.length === 0) this.start();
+    });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.settingsMenu.destroy();
@@ -119,7 +159,18 @@ export class TitleScene extends Phaser.Scene {
   private start(): void {
     if (this.started || this.settingsMenu.isOpen) return;
     this.started = true;
-    this.scene.start('Race', this.sceneData);
+    this.scene.start('Race', { trackKey: Settings.get().trackKey, carKey: this.sceneData.carKey });
+  }
+
+  private refreshTrackLabel(): void {
+    const entry = TRACK_CATALOG.find((track) => track.key === Settings.get().trackKey) ?? TRACK_CATALOG[0];
+    this.trackLabel.setText(entry.label);
+  }
+
+  private cycleTrack(direction: number): void {
+    const currentIndex = TRACK_CATALOG.findIndex((track) => track.key === Settings.get().trackKey);
+    const nextIndex = (currentIndex + direction + TRACK_CATALOG.length) % TRACK_CATALOG.length;
+    Settings.update({ trackKey: TRACK_CATALOG[nextIndex].key });
   }
 
   private drawCheckeredBand(centerY: number, width: number): void {
