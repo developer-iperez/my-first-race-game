@@ -13,17 +13,22 @@ export interface DifficultyTuning {
 export const DIFFICULTY_LEVELS: readonly Difficulty[] = ['easy', 'normal', 'hard'];
 
 /**
- * "Difícil" = 1.0/1.0, la potencia y velocidad tal cual las define el JSON
- * del coche. "Normal" y "Fácil" reducen ambas: solo bajar la aceleración no
- * bastaba, porque el coche seguía alcanzando la misma velocidad máxima y
- * costaba igual de manejar en curva (el giro también depende de la
- * velocidad, ver stepCarPhysics). "Fácil" es notablemente más lento y
- * lento para acelerar, pensado para aprender a no perder el control.
+ * Los tres niveles recortan la velocidad máxima del coche respecto al JSON
+ * (que define un tope alto, 260): en este circuito, tan pequeño que se ve
+ * entero de una vez, el radio de giro mínimo del coche es proporcional a su
+ * velocidad máxima (radio ≈ maxSpeed / turnRate, ver stepCarPhysics), así
+ * que a tope el coche no cabe en las curvas y es ingobernable. Bajar el
+ * tope aprieta el radio de giro y hace el juego manejable.
+ *
+ * - "Fácil": lento y suave, para aprender sin perder el control.
+ * - "Normal": velocidad media; el derrape se nota en curva pero se maneja.
+ * - "Difícil": rápido y más deslizante, para quien ya controla — sigue
+ *   siendo tomable, no un tope imposible.
  */
 export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyTuning> = {
-  easy: { label: 'Fácil', accelerationMultiplier: 0.4, speedMultiplier: 0.5 },
-  normal: { label: 'Normal', accelerationMultiplier: 0.65, speedMultiplier: 0.75 },
-  hard: { label: 'Difícil', accelerationMultiplier: 1.0, speedMultiplier: 1.0 },
+  easy: { label: 'Fácil', accelerationMultiplier: 0.45, speedMultiplier: 0.42 },
+  normal: { label: 'Normal', accelerationMultiplier: 0.6, speedMultiplier: 0.6 },
+  hard: { label: 'Difícil', accelerationMultiplier: 0.85, speedMultiplier: 0.73 },
 };
 
 /**

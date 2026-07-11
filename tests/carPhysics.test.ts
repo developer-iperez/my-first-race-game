@@ -31,6 +31,27 @@ describe('stepCarPhysics', () => {
     expect(result.vy).toBeCloseTo(0);
   });
 
+  it('reverses from rest, but accelerates backwards more gently than it accelerates forwards', () => {
+    const forward = stepCarPhysics(stillState, { ...noSteerInput, throttle: 1 }, baseConfig, 1 / 60);
+    const reverse = stepCarPhysics(stillState, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
+    // Marcha atrás: se mueve hacia -x...
+    expect(reverse.vx).toBeLessThan(0);
+    // ...pero con menos empuje que hacia delante (no debe usar el frenado
+    // fuerte, que es incluso mayor que el motor).
+    expect(Math.abs(reverse.vx)).toBeLessThan(Math.abs(forward.vx));
+  });
+
+  it('braking while moving forward is stronger than reverse acceleration (freno != marcha atrás)', () => {
+    const movingForward: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
+    const braking = stepCarPhysics(movingForward, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
+    const reverseFromRest = stepCarPhysics(stillState, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
+    // El frenado (yendo hacia delante) aplica más deceleración que el
+    // empuje de la marcha atrás desde parado.
+    const brakingDelta = movingForward.vx - braking.vx; // cuánto ha frenado
+    const reverseDelta = Math.abs(reverseFromRest.vx); // cuánto ha empujado atrás
+    expect(brakingDelta).toBeGreaterThan(reverseDelta);
+  });
+
   it('never exceeds maxSpeed even after many accelerating steps', () => {
     let state = stillState;
     for (let i = 0; i < 600; i++) {

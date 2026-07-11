@@ -22,6 +22,12 @@ export class SettingsMenu {
     this.button.setAttribute('aria-label', 'Ajustes');
     this.button.textContent = '⚙️';
     this.button.addEventListener('click', () => this.open());
+    // Evitar que el botón se quede con el foco del teclado al pulsarlo: si lo
+    // retiene, la barra espaciadora (freno de mano) volvería a "clicarlo" y
+    // abriría los ajustes en vez de frenar. Con preventDefault en mousedown
+    // el clic sigue funcionando pero el foco se queda en el body y el
+    // espacio siempre llega al juego.
+    this.button.addEventListener('mousedown', (event) => event.preventDefault());
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'settings-overlay';

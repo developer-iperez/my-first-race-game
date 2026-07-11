@@ -405,3 +405,36 @@ y versionado según [SemVer](https://semver.org/lang/es/).
     unos frames, y el agarre normal responde al volante casi al
     instante (para no perder la sensación arcade "directa" fuera de un
     derrape).
+
+### Changed
+- Recalibrada la dificultad para que el juego sea manejable en los tres
+  niveles (feedback: en normal el derrape se notaba pero iba demasiado
+  rápido, en difícil era ingobernable, en fácil no se notaba el derrape).
+  La clave: en este circuito, tan pequeño que se ve entero de una vez, el
+  radio de giro mínimo del coche es proporcional a su velocidad máxima
+  (radio ≈ maxSpeed / turnRate), así que a tope el coche no cabe en las
+  curvas. Bajados los topes de velocidad de cada nivel para apretar el
+  radio de giro: "Difícil" pasa de radio ~81px (mayor que el ancho del
+  carril, ingobernable) a ~59px (tomable con pericia); "Normal" a ~49px
+  (el derrape se sigue notando en curva pero se controla); "Fácil" a
+  ~34px (lento y suave para aprender). Verificado en directo midiendo la
+  velocidad punta y el radio de giro real en cada nivel.
+- La marcha atrás acelera más despacio que hacia delante
+  (`REVERSE_POWER_FACTOR` en `carPhysics.ts`). Antes, pisar "atrás" usaba
+  siempre `brakingPower` (1200, incluso mayor que el motor), así que el
+  coche aceleraba en reversa más rápido que hacia delante. Ahora se
+  distingue: pisar atrás YENDO hacia delante sigue siendo frenar (fuerte);
+  parado o ya retrocediendo es marcha atrás, con una fracción de la
+  potencia del motor. Verificado: hacia delante alcanza el tope en ~0.5s,
+  en reversa va notablemente más lenta.
+
+### Fixed
+- El freno de mano (barra espaciadora) dejaba de funcionar con teclado
+  tras abrir los ajustes: al pulsar el botón ⚙️, este se quedaba con el
+  foco del teclado, así que la siguiente pulsación de espacio volvía a
+  "clicarlo" y reabría los ajustes (que pausan el juego) en vez de
+  frenar. Ahora el botón de ajustes no retiene el foco al pulsarlo
+  (`preventDefault` en su `mousedown`), así que el foco se queda en el
+  body y la barra espaciadora siempre llega al juego. Verificado en
+  directo reproduciendo la secuencia abrir/cerrar ajustes y comprobando
+  que el espacio activa el freno de mano sin reabrir el menú.

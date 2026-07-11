@@ -83,6 +83,15 @@ const YAW_INERTIA_FROM_SLIP = 0.85;
 const MIN_YAW_CATCH_UP_RATE = 0.12;
 
 /**
+ * Fracción de la potencia del motor (enginePower) que se usa al ir marcha
+ * atrás, para que dé menos aceleración que hacia delante — un coche de
+ * carreras acelera mucho peor en reversa. NO afecta al frenado: pisar
+ * "atrás" yendo hacia delante sigue usando brakingPower (fuerte); esto solo
+ * entra cuando el coche está parado o ya retrocediendo.
+ */
+const REVERSE_POWER_FACTOR = 0.4;
+
+/**
  * Aplica un factor de "agarre/fricción por frame a 60fps" de forma
  * independiente del framerate real, usando dt en segundos. Se exporta para
  * que otros efectos de fricción (p.ej. frenado fuerte al salirse de pista
@@ -134,9 +143,19 @@ export function stepCarPhysics(
 
   const angle = state.angle + yawRate * dt;
 
-  // Motor / freno a lo largo del morro del coche (dirección al inicio del frame).
+  // Motor / freno / marcha atrás a lo largo del morro del coche (dirección
+  // al inicio del frame). Pisar "atrás" hace dos cosas distintas según cómo
+  // se mueva el coche: si va hacia delante es FRENAR (brakingPower, fuerte);
+  // si está parado o ya retrocede es MARCHA ATRÁS (más floja que acelerar).
   const throttle = clamp(input.throttle, -1, 1);
-  const power = throttle >= 0 ? config.enginePower : config.brakingPower;
+  let power: number;
+  if (throttle >= 0) {
+    power = config.enginePower;
+  } else if (forwardSpeedBefore > 0) {
+    power = config.brakingPower;
+  } else {
+    power = config.enginePower * REVERSE_POWER_FACTOR;
+  }
   const acceleration = (throttle * power) / config.mass;
 
   let vx = state.vx + oldForward.x * acceleration * dt;

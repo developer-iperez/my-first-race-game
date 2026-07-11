@@ -31,10 +31,13 @@ describe('applyDifficultyToPhysics', () => {
     expect(restOfResult).toEqual(restOfBase);
   });
 
-  it('"hard" keeps the car\'s own engine power and top speed unchanged', () => {
+  it('"hard" is the fastest level but still capped below the car\'s raw top speed (jugabilidad)', () => {
+    // En este circuito, a la velocidad máxima cruda del coche el radio de
+    // giro no cabe en las curvas; incluso "Difícil" recorta el tope para
+    // que siga siendo tomable, no ingobernable.
     const result = applyDifficultyToPhysics(basePhysics, 'hard');
-    expect(result.enginePower).toBe(basePhysics.enginePower);
-    expect(result.maxSpeed).toBe(basePhysics.maxSpeed);
+    expect(result.maxSpeed).toBeLessThan(basePhysics.maxSpeed);
+    expect(result.enginePower).toBeLessThan(basePhysics.enginePower);
   });
 
   it('"easy" is slower and less powerful than "normal", which is less than "hard"', () => {
