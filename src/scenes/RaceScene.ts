@@ -104,6 +104,7 @@ export class RaceScene extends Phaser.Scene {
     this.audio = new RaceAudio(this);
     this.skidParticles = new SkidParticles(this);
     this.telemetryHud = new DriveTelemetryHud(this);
+    this.telemetryHud.setVisible(Settings.get().debugTelemetryEnabled);
     // Cuenta atrás de salida: el coche queda congelado en la parrilla hasta
     // el "¡YA!". Se recrea en cada create(), así que "Volver a empezar"
     // (scene.restart) también repite la cuenta atrás.
@@ -121,6 +122,7 @@ export class RaceScene extends Phaser.Scene {
     this.unsubscribeSettings = Settings.onChange(() => {
       this.applyCarTuning();
       this.applySound();
+      this.telemetryHud.setVisible(Settings.get().debugTelemetryEnabled);
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {

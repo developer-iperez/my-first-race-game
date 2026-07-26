@@ -30,8 +30,13 @@ export class DriveTelemetryHud {
       .setDepth(99);
   }
 
+  setVisible(visible: boolean): void {
+    this.panel.setVisible(visible);
+    this.text.setVisible(visible);
+  }
+
   update(telemetry: DriveTelemetry | undefined): void {
-    if (!telemetry) return;
+    if (!telemetry || !this.text.visible) return;
 
     const lines = [
       `speed ${telemetry.speed.toFixed(0)} (${(telemetry.speedFactor * 100).toFixed(0)}%)`,

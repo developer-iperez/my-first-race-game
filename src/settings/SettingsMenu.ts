@@ -31,6 +31,7 @@ export class SettingsMenu {
   private readonly sliderValueTexts = {} as Record<keyof CarTuning, HTMLSpanElement>;
   private soundButton?: HTMLButtonElement;
   private fullscreenButton?: HTMLButtonElement;
+  private telemetryButton?: HTMLButtonElement;
   private readonly onExitToMenu?: () => void;
 
   /**
@@ -116,6 +117,7 @@ export class SettingsMenu {
     if (isFullscreenSupported()) {
       this.panel.appendChild(this.buildFullscreenRow());
     }
+    this.panel.appendChild(this.buildTelemetryRow());
     if (this.onExitToMenu) {
       this.panel.appendChild(this.buildExitToMenuRow());
     }
@@ -139,6 +141,11 @@ export class SettingsMenu {
     if (this.fullscreenButton) {
       this.fullscreenButton.textContent = isFullscreenActive() ? 'Salir de pantalla completa' : 'Pantalla completa';
     }
+    if (this.telemetryButton) {
+      this.telemetryButton.textContent = settings.debugTelemetryEnabled
+        ? 'Telemetría conducción: ON 📊'
+        : 'Telemetría conducción: off';
+    }
   }
 
   private buildSoundRow(): HTMLElement {
@@ -156,6 +163,28 @@ export class SettingsMenu {
     btn.addEventListener('click', () => Settings.update({ soundEnabled: !Settings.get().soundEnabled }));
     row.appendChild(btn);
     this.soundButton = btn;
+
+    return row;
+  }
+
+  /** Muestra/oculta el HUD de telemetría de conducción (velocidad, % derrape, agarre...). */
+  private buildTelemetryRow(): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+
+    const label = document.createElement('div');
+    label.className = 'settings-row__label';
+    label.textContent = 'Telemetría';
+    row.appendChild(label);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'settings-option settings-option--wide';
+    btn.addEventListener('click', () =>
+      Settings.update({ debugTelemetryEnabled: !Settings.get().debugTelemetryEnabled }),
+    );
+    row.appendChild(btn);
+    this.telemetryButton = btn;
 
     return row;
   }

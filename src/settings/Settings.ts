@@ -4,6 +4,8 @@ import { TRACK_CATALOG } from '../track/trackCatalog';
 export interface GameSettings extends CarTuning {
   soundEnabled: boolean;
   trackKey: string;
+  /** Muestra en pantalla el HUD de telemetría de conducción (velocidad, % derrape, agarre...). Apagado por defecto: es una herramienta de ajuste, no algo que un jugador normal necesite ver siempre. */
+  debugTelemetryEnabled: boolean;
   // Futuros ajustes (volumen, layout de controles, coche elegido...) se
   // añaden aquí como una clave más; el resto del sistema (persistencia,
   // pub-sub, menú) no cambia.
@@ -15,6 +17,7 @@ const DEFAULTS: GameSettings = {
   ...DEFAULT_CAR_TUNING,
   soundEnabled: true,
   trackKey: TRACK_CATALOG[0].key,
+  debugTelemetryEnabled: false,
 };
 
 /**
