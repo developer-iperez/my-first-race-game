@@ -113,7 +113,7 @@ export class RaceScene extends Phaser.Scene {
     // como DOM aparte de Phaser (multi-touch real) y se combinan con el
     // teclado en readInput(), así que ambos funcionan a la vez.
     this.touchControls = new TouchControls(document.body);
-    this.settingsMenu = new SettingsMenu(document.body);
+    this.settingsMenu = new SettingsMenu(document.body, () => this.exitToMenu());
     this.applySound();
     this.unsubscribeSettings = Settings.onChange(() => {
       this.applyCarTuning();
@@ -153,6 +153,11 @@ export class RaceScene extends Phaser.Scene {
   /** Reinicia la carrera desde cero: mismo circuito y coche, todo el estado limpio. */
   private restartRace(): void {
     this.scene.restart(this.sceneData);
+  }
+
+  /** Abandona la carrera en curso y vuelve a la pantalla de título (elegir otro circuito). */
+  private exitToMenu(): void {
+    this.scene.start('Title', { carKey: this.sceneData.carKey });
   }
 
   update(_time: number, deltaMs: number): void {

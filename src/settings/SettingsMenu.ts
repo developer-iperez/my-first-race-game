@@ -31,8 +31,15 @@ export class SettingsMenu {
   private readonly sliderValueTexts = {} as Record<keyof CarTuning, HTMLSpanElement>;
   private soundButton?: HTMLButtonElement;
   private fullscreenButton?: HTMLButtonElement;
+  private readonly onExitToMenu?: () => void;
 
-  constructor(parent: HTMLElement) {
+  /**
+   * onExitToMenu: si se pasa, añade un botón "Volver al menú" al panel (solo
+   * tiene sentido durante una carrera, para poder cambiar de circuito — en
+   * TitleScene no se pasa, porque ya es el menú).
+   */
+  constructor(parent: HTMLElement, onExitToMenu?: () => void) {
+    this.onExitToMenu = onExitToMenu;
     this.button = document.createElement('button');
     this.button.type = 'button';
     this.button.className = 'settings-btn';
@@ -109,6 +116,9 @@ export class SettingsMenu {
     if (isFullscreenSupported()) {
       this.panel.appendChild(this.buildFullscreenRow());
     }
+    if (this.onExitToMenu) {
+      this.panel.appendChild(this.buildExitToMenuRow());
+    }
 
     // Futuros ajustes: añadir aquí más filas con this.panel.appendChild(...),
     // y su actualización correspondiente en refresh().
@@ -170,6 +180,24 @@ export class SettingsMenu {
     });
     row.appendChild(btn);
     this.fullscreenButton = btn;
+
+    return row;
+  }
+
+  /** Botón para abandonar la carrera en curso y volver a la pantalla de título (elegir otro circuito). */
+  private buildExitToMenuRow(): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'settings-option settings-option--wide';
+    btn.textContent = '🏁 Volver al menú (elegir circuito)';
+    btn.addEventListener('click', () => {
+      this.close();
+      this.onExitToMenu?.();
+    });
+    row.appendChild(btn);
 
     return row;
   }
