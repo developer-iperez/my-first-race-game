@@ -287,6 +287,22 @@ describe('stepCarPhysics', () => {
       const result = simulateFrames(cornering, { throttle: 0, steer: 1, handbrake: true }, 20);
       expect(isSkidding(result)).toBe(true);
     });
+
+    it('pulling the handbrake mid-corner slides more than continuing without it (not swallowed by cornering grip loss)', () => {
+      const cornering: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
+      const midCorner = simulateFrames(cornering, { throttle: 1, steer: 1, handbrake: false }, 15);
+      const withoutHandbrake = simulateFrames(midCorner, { throttle: 0, steer: 1, handbrake: false }, 15);
+      const withHandbrake = simulateFrames(midCorner, { throttle: 0, steer: 1, handbrake: true }, 15);
+      expect(slipRatio(withHandbrake)).toBeGreaterThan(slipRatio(withoutHandbrake));
+    });
+
+    it('a quick opposite-steer flick before turning in produces a bigger, sustained slide than turning in directly', () => {
+      const straight: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
+      const flicked = simulateFrames(straight, { throttle: 1, steer: -1, handbrake: false }, 8);
+      const afterFlick = simulateFrames(flicked, { throttle: 1, steer: 1, handbrake: false }, 12);
+      const direct = simulateFrames(straight, { throttle: 1, steer: 1, handbrake: false }, 12);
+      expect(slipRatio(afterFlick)).toBeGreaterThan(slipRatio(direct));
+    });
   });
 });
 

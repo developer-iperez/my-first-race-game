@@ -79,8 +79,39 @@ const CORNERING_GRIP_LOSS = 0.9;
  * casi al instante, apagando el derrape).
  */
 const CORNERING_SPEED_SATURATION = 0.7;
-/** Agarre lateral mínimo garantizado, para que nunca se vuelva un patinazo sin control. */
-const MIN_LATERAL_GRIP = 0.015;
+/**
+ * Agarre lateral mínimo garantizado SOLO por girar fuerte (sin freno de
+ * mano). Se deja más alto que el mínimo absoluto (ver
+ * MIN_LATERAL_GRIP_HANDBRAKE) a propósito: si girar fuerte por sí solo ya
+ * saturase hasta el mismo suelo que el freno de mano, pisar el freno de
+ * mano a mitad de curva no cambiaría nada (ya se estaba en el suelo) — el
+ * freno de mano necesita su propio hueco por debajo para notarse siempre,
+ * incluso ya derrapando por la curva.
+ */
+const MIN_LATERAL_GRIP_STEER = 0.05;
+/** Agarre lateral mínimo con freno de mano: más bajo que MIN_LATERAL_GRIP_STEER (ver arriba), para un derrape más profundo siempre disponible. */
+const MIN_LATERAL_GRIP_HANDBRAKE = 0.015;
+
+/**
+ * Boost temporal de pérdida de agarre lateral al invertir el sentido de la
+ * rotación (yawRate) que ya llevaba el coche — el "contravolante rápido"
+ * (Scandinavian flick): dar un golpe de volante al lado contrario y
+ * enseguida al lado de la curva. Se calcula sin guardar estado nuevo:
+ * mientras el objetivo (targetYawRate) apunta en sentido contrario a la
+ * rotación que el coche YA llevaba (previousYawRate), cuanto más fuerte
+ * llevaba esa rotación previa, más se "carga" el derrape al cambiar de
+ * sentido — como el peso del coche balanceándose de un lado a otro. Se
+ * desvanece solo en un par de frames porque previousYawRate decae por su
+ * propia inercia (YAW_CATCH_UP_RATE) frame a frame.
+ */
+const FLICK_GRIP_LOSS_BOOST = 0.7;
+/**
+ * Fracción de la velocidad total que se inyecta como velocidad lateral al
+ * detectar un flick (ver FLICK_GRIP_LOSS_BOOST) — el "empujón" real que
+ * hace que el derrape se note y se sostenga, no solo un hueco de agarre
+ * momentáneo.
+ */
+const FLICK_LATERAL_KICK = 0.5;
 
 /**
  * Fracción del hueco entre la velocidad angular actual y la que pide el
@@ -188,7 +219,22 @@ export function stepCarPhysics(
   const forward = { x: Math.cos(angle), y: Math.sin(angle) };
   const right = { x: -forward.y, y: forward.x };
   const forwardSpeed = vx * forward.x + vy * forward.y;
-  const lateralSpeed = vx * right.x + vy * right.y;
+  let lateralSpeed = vx * right.x + vy * right.y;
+
+  // El "contravolante rápido" (Scandinavian flick: golpe de volante al lado
+  // contrario y enseguida al de la curva) no solo debe aflojar el agarre un
+  // instante — necesita un empujón de velocidad lateral REAL para que el
+  // derrape se sostenga después, en vez de un simple parpadeo que se
+  // cancela solo en 2-3 frames al re-proyectar sobre el nuevo rumbo (que
+  // gira rapidísimo durante la propia inversión). El impulso sale en
+  // sentido CONTRARIO al nuevo giro (la trasera se va para el lado opuesto
+  // de hacia donde ahora apunta el morro) y es proporcional a lo fuerte que
+  // llevaba la rotación previa que hay que revertir.
+  const isFlick = Math.sign(previousYawRate) * Math.sign(targetYawRate) < 0;
+  const flickStrength = isFlick ? clamp(Math.abs(previousYawRate) / config.turnRate, 0, 1) : 0;
+  if (flickStrength > 0) {
+    lateralSpeed += -Math.sign(targetYawRate) * flickStrength * FLICK_LATERAL_KICK * totalSpeedBefore;
+  }
 
   // Convención de "grip" (docs/ANALISIS.md §3.4): mayor agarre = menos
   // derrape. Se traduce a una retención (1 - agarre efectivo): con mucho
@@ -197,9 +243,11 @@ export function stepCarPhysics(
   // conserva y el coche desliza.
   const corneringSpeedFactor = Math.sqrt(clamp(speedFactor / CORNERING_SPEED_SATURATION, 0, 1));
   const corneringIntensity = Math.abs(input.steer) * corneringSpeedFactor;
-  const corneringGripLoss = corneringIntensity * CORNERING_GRIP_LOSS;
+  const flickGripLoss = flickStrength * FLICK_GRIP_LOSS_BOOST;
+  const corneringGripLoss = clamp(corneringIntensity * CORNERING_GRIP_LOSS + flickGripLoss, 0, 1);
   const baseLateralGrip = (input.handbrake ? config.handbrakeGrip : config.gripLateral) * surfaceGrip;
-  const effectiveLateralGrip = clamp(baseLateralGrip - corneringGripLoss, MIN_LATERAL_GRIP, 1);
+  const minLateralGrip = input.handbrake ? MIN_LATERAL_GRIP_HANDBRAKE : MIN_LATERAL_GRIP_STEER;
+  const effectiveLateralGrip = clamp(baseLateralGrip - corneringGripLoss, minLateralGrip, 1);
   const forwardDecay = frameRateIndependentDecay(config.gripForward / surfaceDrag, dt);
   const lateralDecay = frameRateIndependentDecay(1 - effectiveLateralGrip, dt);
 
