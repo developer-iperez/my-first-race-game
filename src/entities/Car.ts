@@ -1,6 +1,12 @@
 import Phaser from 'phaser';
 import type { CarDefinition, CarPhysicsConfig } from '../config/schema/car';
-import { stepCarPhysics, isSkidding, type CarInput, type CarState } from '../physics/carPhysics';
+import {
+  stepCarPhysicsWithTelemetry,
+  isSkidding,
+  type CarInput,
+  type CarState,
+  type DriveTelemetry,
+} from '../physics/carPhysics';
 
 /**
  * Entidad de coche construida enteramente a partir de un CarDefinition
@@ -19,6 +25,8 @@ export class Car {
   private readonly skidTint: number;
   /** Físicas efectivas usadas en la simulación: definition.physics + ajustes del jugador (dificultad). */
   private physics: CarPhysicsConfig;
+  /** Diagnóstico del último frame de física (ver DriveTelemetry) para el HUD de depuración. */
+  telemetry?: DriveTelemetry;
 
   constructor(scene: Phaser.Scene, definition: CarDefinition, spawn: CarState) {
     this.definition = definition;
@@ -48,7 +56,16 @@ export class Car {
   }
 
   update(dt: number, input: CarInput, surfaceGrip = 1, surfaceDrag = 1): void {
-    this.setState(stepCarPhysics(this.state, input, this.physics, dt, surfaceGrip, surfaceDrag));
+    const { nextState, telemetry } = stepCarPhysicsWithTelemetry(
+      this.state,
+      input,
+      this.physics,
+      dt,
+      surfaceGrip,
+      surfaceDrag,
+    );
+    this.telemetry = telemetry;
+    this.setState(nextState);
   }
 
   /** Fija el estado físico y sincroniza el render (p. ej. tras resolver una colisión). */

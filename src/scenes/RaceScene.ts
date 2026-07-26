@@ -15,6 +15,7 @@ import { NextTargetIndicator } from '../race/NextTargetIndicator';
 import { RaceAudio } from '../race/RaceAudio';
 import { RaceCountdown } from '../race/RaceCountdown';
 import { SkidParticles } from '../race/SkidParticles';
+import { DriveTelemetryHud } from '../race/DriveTelemetryHud';
 import type { CarDefinition } from '../config/schema/car';
 import { frameRateIndependentDecay, type CarInput } from '../physics/carPhysics';
 import type { TrackDefinition } from '../config/schema/track';
@@ -48,6 +49,7 @@ export class RaceScene extends Phaser.Scene {
   private audio!: RaceAudio;
   private countdown!: RaceCountdown;
   private skidParticles!: SkidParticles;
+  private telemetryHud!: DriveTelemetryHud;
   private raceElapsedMs = 0;
   private sceneData!: RaceSceneData;
   private wasSettingsMenuOpen = false;
@@ -101,6 +103,7 @@ export class RaceScene extends Phaser.Scene {
     this.nextTargetIndicator = new NextTargetIndicator(this);
     this.audio = new RaceAudio(this);
     this.skidParticles = new SkidParticles(this);
+    this.telemetryHud = new DriveTelemetryHud(this);
     // Cuenta atrás de salida: el coche queda congelado en la parrilla hasta
     // el "¡YA!". Se recrea en cada create(), así que "Volver a empezar"
     // (scene.restart) también repite la cuenta atrás.
@@ -126,6 +129,7 @@ export class RaceScene extends Phaser.Scene {
       this.nextTargetIndicator.destroy();
       this.countdown.destroy();
       this.skidParticles.destroy();
+      this.telemetryHud.destroy();
       // scene.restart() (botón de reinicio) dispara SHUTDOWN antes de volver
       // a llamar a create(): si no se destruye aquí, el motor/derrape de la
       // carrera anterior se quedarían sonando en bucle indefinidamente,
@@ -201,6 +205,7 @@ export class RaceScene extends Phaser.Scene {
       const surfaceDrag = getSurfaceDragAt(this.track, this.car.state.x, this.car.state.y);
 
       this.car.update(dt, input, surfaceGrip, surfaceDrag);
+      this.telemetryHud.update(this.car.telemetry);
 
       if (isWallAt(this.track, this.car.state.x, this.car.state.y)) {
         const offtrackDecay = frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt);

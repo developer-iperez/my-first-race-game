@@ -61,6 +61,13 @@ describe('stepCarPhysics', () => {
     expect(speed).toBeLessThanOrEqual(baseConfig.maxSpeed + 1e-6);
   });
 
+  it('handbrake alone in a straight line actually brakes (not just a lateral-grip switch)', () => {
+    const moving: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
+    const coasting = stepCarPhysics(moving, noSteerInput, baseConfig, 0.2);
+    const handbraking = stepCarPhysics(moving, { throttle: 0, steer: 0, handbrake: true }, baseConfig, 0.2);
+    expect(handbraking.vx).toBeLessThan(coasting.vx);
+  });
+
   it('does not turn while stationary (parado no gira)', () => {
     const result = stepCarPhysics(stillState, { ...noSteerInput, steer: 1 }, baseConfig, 1 / 60);
     expect(result.angle).toBe(stillState.angle);
@@ -302,6 +309,27 @@ describe('stepCarPhysics', () => {
       const afterFlick = simulateFrames(flicked, { throttle: 1, steer: 1, handbrake: false }, 12);
       const direct = simulateFrames(straight, { throttle: 1, steer: 1, handbrake: false }, 12);
       expect(slipRatio(afterFlick)).toBeGreaterThan(slipRatio(direct));
+    });
+
+    it('even a single-frame flick tap (not just a held one) still gives a noticeably bigger slide', () => {
+      const straight: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
+      const flicked = stepCarPhysics(straight, { throttle: 1, steer: -1, handbrake: false }, baseConfig, 1 / 60);
+      const afterFlick = simulateFrames(flicked, { throttle: 1, steer: 1, handbrake: false }, 12);
+      const direct = simulateFrames(straight, { throttle: 1, steer: 1, handbrake: false }, 12);
+      expect(slipRatio(afterFlick)).toBeGreaterThan(slipRatio(direct) * 1.2);
+    });
+
+    it('countersteering to recover an existing drift does not get treated as a fresh flick (no extra kick)', () => {
+      // Mismo escenario que el test de contravolante de más arriba: el coche
+      // YA está derrapando fuerte cuando se contravolantea para corregir.
+      // El cambio de signo de yawRate es idéntico al de un flick, pero aquí
+      // no debe sumar ningún empujón extra — si lo hiciera, "recoger" el
+      // derrape en realidad lo alimentaría en vez de corregirlo.
+      const cornering: CarState = { x: 0, y: 0, angle: 0, vx: 220, vy: 0 };
+      const drifted = simulateFrames(cornering, { throttle: 1, steer: 1, handbrake: false }, 30);
+      const widening = simulateFrames(drifted, { throttle: 1, steer: 1, handbrake: false }, 8);
+      const countersteering = simulateFrames(drifted, { throttle: 1, steer: -1, handbrake: false }, 8);
+      expect(slipRatio(countersteering)).toBeLessThan(slipRatio(widening));
     });
   });
 });

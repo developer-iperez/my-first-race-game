@@ -104,14 +104,29 @@ const MIN_LATERAL_GRIP_HANDBRAKE = 0.015;
  * desvanece solo en un par de frames porque previousYawRate decae por su
  * propia inercia (YAW_CATCH_UP_RATE) frame a frame.
  */
-const FLICK_GRIP_LOSS_BOOST = 0.7;
+const FLICK_GRIP_LOSS_BOOST = 0.85;
 /**
  * Fracción de la velocidad total que se inyecta como velocidad lateral al
  * detectar un flick (ver FLICK_GRIP_LOSS_BOOST) — el "empujón" real que
  * hace que el derrape se note y se sostenga, no solo un hueco de agarre
  * momentáneo.
  */
-const FLICK_LATERAL_KICK = 0.5;
+const FLICK_LATERAL_KICK = 1.6;
+/**
+ * Ratio de derrape previo por debajo del cual se considera que el coche
+ * "no estaba ya derrapando" y por tanto un cambio de sentido de yawRate es
+ * un flick nuevo, no una recuperación de un derrape existente (ver arriba).
+ */
+const FLICK_MAX_PRIOR_SLIP = 0.3;
+
+/**
+ * Retención de velocidad hacia delante por frame a 60fps con el freno de
+ * mano puesto (bloqueo de ruedas traseras = frenada real, no solo derrape).
+ * Con 0.90 se pierde la mitad de la velocidad en ~6 frames (~0.1s): un
+ * frenado fuerte y notable, pero no instantáneo — se puede modular
+ * soltando el freno antes de perder toda la velocidad.
+ */
+const HANDBRAKE_FORWARD_RETENTION = 0.9;
 
 /**
  * Fracción del hueco entre la velocidad angular actual y la que pide el
@@ -152,14 +167,45 @@ export function frameRateIndependentDecay(perFrameFactor: number, dt: number): n
   return Math.pow(perFrameFactor, dt * 60);
 }
 
-export function stepCarPhysics(
+/**
+ * Diagnóstico de un paso de física: los valores intermedios que explican
+ * POR QUÉ el coche se comporta como lo hace ese frame (cuánto agarre le
+ * queda, si se ha detectado un flick, etc.), pensado para un HUD de
+ * telemetría en pantalla — en móvil no hay devtools para poner
+ * console.log y leerlo en directo mientras se juega.
+ */
+export interface DriveTelemetry {
+  /** Velocidad total (px/s) al INICIO del frame, antes de aplicar este paso. */
+  speed: number;
+  /** speed / maxSpeed, recortado a [0,1]. */
+  speedFactor: number;
+  /** Cuánto se pierde de agarre lateral este frame por girar fuerte y/o flick (0 = nada, 1 = el máximo posible). */
+  corneringGripLoss: number;
+  /** Agarre lateral que queda tras restar corneringGripLoss (mayor = menos derrape). */
+  effectiveLateralGrip: number;
+  /** Si este frame se ha detectado un flick (contravolante rápido antes de girar hacia la curva). */
+  isFlick: boolean;
+  /** Fuerza del flick detectado (0..1), o 0 si no hay flick. */
+  flickStrength: number;
+  /** Freno de mano pulsado este frame (passthrough del input, para no tener que guardarlo aparte). */
+  handbrake: boolean;
+  /** Ratio de derrape (velocidad lateral / velocidad total) del estado RESULTANTE tras este paso. */
+  slipRatio: number;
+}
+
+interface StepResult {
+  nextState: CarState;
+  telemetry: DriveTelemetry;
+}
+
+function computeStep(
   state: CarState,
   input: CarInput,
   config: CarPhysicsConfig,
   dt: number,
-  surfaceGrip: SurfaceGrip = 1,
-  surfaceDrag: SurfaceDrag = 1,
-): CarState {
+  surfaceGrip: SurfaceGrip,
+  surfaceDrag: SurfaceDrag,
+): StepResult {
   const oldForward = { x: Math.cos(state.angle), y: Math.sin(state.angle) };
   const oldRight = { x: -oldForward.y, y: oldForward.x };
 
@@ -230,7 +276,15 @@ export function stepCarPhysics(
   // sentido CONTRARIO al nuevo giro (la trasera se va para el lado opuesto
   // de hacia donde ahora apunta el morro) y es proporcional a lo fuerte que
   // llevaba la rotación previa que hay que revertir.
-  const isFlick = Math.sign(previousYawRate) * Math.sign(targetYawRate) < 0;
+  //
+  // La misma inversión de signo (previousYawRate vs targetYawRate) ocurre
+  // también al RECUPERAR un derrape ya en marcha con contravolante (el
+  // mecanismo de inercia de yaw ya cubre ese caso, ver YAW_INERTIA_FROM_SLIP)
+  // — por eso el flick solo se activa si el coche NO estaba ya derrapando
+  // fuerte (priorSlipRatio bajo): así se distingue "provocar un derrape
+  // nuevo con un golpe de volante" de "corregir uno que ya existe", que son
+  // el mismo cambio de signo pero deben sentirse distinto.
+  const isFlick = Math.sign(previousYawRate) * Math.sign(targetYawRate) < 0 && priorSlipRatio < FLICK_MAX_PRIOR_SLIP;
   const flickStrength = isFlick ? clamp(Math.abs(previousYawRate) / config.turnRate, 0, 1) : 0;
   if (flickStrength > 0) {
     lateralSpeed += -Math.sign(targetYawRate) * flickStrength * FLICK_LATERAL_KICK * totalSpeedBefore;
@@ -248,7 +302,12 @@ export function stepCarPhysics(
   const baseLateralGrip = (input.handbrake ? config.handbrakeGrip : config.gripLateral) * surfaceGrip;
   const minLateralGrip = input.handbrake ? MIN_LATERAL_GRIP_HANDBRAKE : MIN_LATERAL_GRIP_STEER;
   const effectiveLateralGrip = clamp(baseLateralGrip - corneringGripLoss, minLateralGrip, 1);
-  const forwardDecay = frameRateIndependentDecay(config.gripForward / surfaceDrag, dt);
+  // El freno de mano bloquea las ruedas traseras: además de soltar el
+  // agarre lateral (arriba), eso también frena de verdad — sin esto, pisar
+  // el freno de mano en línea recta (sin volante) no hacía absolutamente
+  // nada distinto de simplemente soltar el acelerador.
+  const handbrakeForwardDecay = input.handbrake ? frameRateIndependentDecay(HANDBRAKE_FORWARD_RETENTION, dt) : 1;
+  const forwardDecay = frameRateIndependentDecay(config.gripForward / surfaceDrag, dt) * handbrakeForwardDecay;
   const lateralDecay = frameRateIndependentDecay(1 - effectiveLateralGrip, dt);
 
   const newForwardSpeed = forwardSpeed * forwardDecay;
@@ -265,7 +324,7 @@ export function stepCarPhysics(
     vy *= scale;
   }
 
-  return {
+  const nextState: CarState = {
     x: state.x + vx * dt,
     y: state.y + vy * dt,
     angle,
@@ -273,6 +332,53 @@ export function stepCarPhysics(
     vy,
     yawRate,
   };
+
+  return {
+    nextState,
+    telemetry: {
+      speed: totalSpeedBefore,
+      speedFactor,
+      corneringGripLoss,
+      effectiveLateralGrip,
+      isFlick,
+      flickStrength,
+      handbrake: input.handbrake,
+      slipRatio: computeSlipRatio(nextState),
+    },
+  };
+}
+
+export function stepCarPhysics(
+  state: CarState,
+  input: CarInput,
+  config: CarPhysicsConfig,
+  dt: number,
+  surfaceGrip: SurfaceGrip = 1,
+  surfaceDrag: SurfaceDrag = 1,
+): CarState {
+  return computeStep(state, input, config, dt, surfaceGrip, surfaceDrag).nextState;
+}
+
+/** Igual que stepCarPhysics, pero además devuelve el diagnóstico del frame (ver DriveTelemetry) para un HUD de depuración. */
+export function stepCarPhysicsWithTelemetry(
+  state: CarState,
+  input: CarInput,
+  config: CarPhysicsConfig,
+  dt: number,
+  surfaceGrip: SurfaceGrip = 1,
+  surfaceDrag: SurfaceDrag = 1,
+): StepResult {
+  return computeStep(state, input, config, dt, surfaceGrip, surfaceDrag);
+}
+
+/** Ratio de derrape (velocidad lateral / velocidad total) de un estado. 0 si está parado. */
+function computeSlipRatio(state: CarState): number {
+  const forward = { x: Math.cos(state.angle), y: Math.sin(state.angle) };
+  const right = { x: -forward.y, y: forward.x };
+  const lateralSpeed = Math.abs(state.vx * right.x + state.vy * right.y);
+  const speed = Math.hypot(state.vx, state.vy);
+  if (speed < 1e-3) return 0;
+  return lateralSpeed / speed;
 }
 
 /**
@@ -281,10 +387,5 @@ export function stepCarPhysics(
  * partículas/sonido de derrape sin duplicar la lógica de descomposición.
  */
 export function isSkidding(state: CarState, thresholdRatio = 0.35): boolean {
-  const forward = { x: Math.cos(state.angle), y: Math.sin(state.angle) };
-  const right = { x: -forward.y, y: forward.x };
-  const lateralSpeed = Math.abs(state.vx * right.x + state.vy * right.y);
-  const speed = Math.hypot(state.vx, state.vy);
-  if (speed < 1e-3) return false;
-  return lateralSpeed / speed > thresholdRatio;
+  return computeSlipRatio(state) > thresholdRatio;
 }
