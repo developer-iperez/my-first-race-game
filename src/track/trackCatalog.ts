@@ -13,4 +13,5 @@ export interface TrackCatalogEntry {
 export const TRACK_CATALOG: TrackCatalogEntry[] = [
   { key: 'track:rally-01', path: 'tracks/rally-01.json', label: 'Bosque Bravo' },
   { key: 'track:rally-02', path: 'tracks/rally-02.json', label: 'Duna Veloz' },
+  { key: 'track:rally-03', path: 'tracks/rally-03.json', label: 'Snake' },
 ];

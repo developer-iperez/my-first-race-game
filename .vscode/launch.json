@@ -8,7 +8,8 @@
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}",
       "preLaunchTask": "vite: dev",
-      "sourceMaps": true
+      "sourceMaps": true,
+      "runtimeExecutable": "/usr/bin/chromium"
     },
     {
       "type": "node",
