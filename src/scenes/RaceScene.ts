@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TrackLoader } from '../track/TrackLoader';
 import { renderTrack } from '../track/TrackRenderer';
-import { getSurfaceGripAt, isWallAt } from '../track/TrackQuery';
+import { getSurfaceDragAt, getSurfaceGripAt, isWallAt } from '../track/TrackQuery';
 import { CarLoader } from '../entities/CarLoader';
 import { Car } from '../entities/Car';
 import { TouchControls } from '../input/TouchControls';
@@ -193,8 +193,9 @@ export class RaceScene extends Phaser.Scene {
       const dt = deltaMs / 1000;
       const input = this.readInput();
       const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
+      const surfaceDrag = getSurfaceDragAt(this.track, this.car.state.x, this.car.state.y);
 
-      this.car.update(dt, input, surfaceGrip);
+      this.car.update(dt, input, surfaceGrip, surfaceDrag);
 
       if (isWallAt(this.track, this.car.state.x, this.car.state.y)) {
         const offtrackDecay = frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt);
@@ -207,14 +208,21 @@ export class RaceScene extends Phaser.Scene {
 
       // La cámara es fija y encuadra el circuito completo sin scroll (F3):
       // sin este límite, un derrape fuerte hacia el borde podría sacar el
-      // coche fuera del área visible y "perderlo" de la pantalla. No es un
-      // muro (no frena ni rebota, solo recorta la posición), así que el
-      // coche puede llegar a pegarse al borde a toda velocidad y seguir
-      // deslizando a lo largo de él con total normalidad.
+      // coche fuera del área visible y "perderlo" de la pantalla. Se trata
+      // como un muro (misma fricción fuerte que isWallAt) en vez de solo
+      // recortar la posición: si no, el coche podía quedarse pegado al
+      // borde a toda velocidad y seguir deslizando a lo largo de él
+      // indefinidamente, como si el borde de la pantalla no existiera.
+      const clampedX = Phaser.Math.Clamp(this.car.state.x, 0, this.track.size.width);
+      const clampedY = Phaser.Math.Clamp(this.car.state.y, 0, this.track.size.height);
+      const hitScreenEdge = clampedX !== this.car.state.x || clampedY !== this.car.state.y;
+      const edgeDecay = hitScreenEdge ? frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt) : 1;
       this.car.setState({
         ...this.car.state,
-        x: Phaser.Math.Clamp(this.car.state.x, 0, this.track.size.width),
-        y: Phaser.Math.Clamp(this.car.state.y, 0, this.track.size.height),
+        x: clampedX,
+        y: clampedY,
+        vx: this.car.state.vx * edgeDecay,
+        vy: this.car.state.vy * edgeDecay,
       });
 
       const previousTargetIndex = this.lapTracker.nextTargetIndex;

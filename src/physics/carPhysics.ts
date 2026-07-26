@@ -48,6 +48,17 @@ export interface CarInput {
 /** Multiplicador de agarre de la superficie bajo el coche (asfalto=1, hierba<1...). */
 export type SurfaceGrip = number;
 
+/**
+ * Multiplicador de resistencia al avance de la superficie bajo el coche
+ * (asfalto=1, hierba>1...). A diferencia de SurfaceGrip (que solo afecta al
+ * agarre lateral, es decir cuánto derrapa), esto frena la velocidad hacia
+ * delante: sin esto, salirse de la pista solo hacía que el coche patinara
+ * más de lado, pero seguía corriendo prácticamente igual de rápido hacia
+ * donde apuntaba — el jugador podía irse fuera de la zona asfaltada y
+ * mantener casi toda la velocidad indefinidamente.
+ */
+export type SurfaceDrag = number;
+
 const clamp = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, value));
 
@@ -59,8 +70,17 @@ const clamp = (value: number, min: number, max: number): number =>
  * maniobras lentas y precisas (aparcar, esquivar) no se ven penalizadas.
  */
 const CORNERING_GRIP_LOSS = 0.9;
+/**
+ * Fracción de maxSpeed a partir de la cual girar fuerte pierde el máximo de
+ * agarre lateral posible (ver CORNERING_GRIP_LOSS). Por debajo satura antes
+ * de llegar a velocidad punta: así el derrape no depende de ir pegado al
+ * tope de velocidad ni de mantener el acelerador a fondo en la curva (con
+ * frenos fuertes, soltar gas frena mucho y sin esto el agarre se recuperaba
+ * casi al instante, apagando el derrape).
+ */
+const CORNERING_SPEED_SATURATION = 0.7;
 /** Agarre lateral mínimo garantizado, para que nunca se vuelva un patinazo sin control. */
-const MIN_LATERAL_GRIP = 0.03;
+const MIN_LATERAL_GRIP = 0.015;
 
 /**
  * Fracción del hueco entre la velocidad angular actual y la que pide el
@@ -107,6 +127,7 @@ export function stepCarPhysics(
   config: CarPhysicsConfig,
   dt: number,
   surfaceGrip: SurfaceGrip = 1,
+  surfaceDrag: SurfaceDrag = 1,
 ): CarState {
   const oldForward = { x: Math.cos(state.angle), y: Math.sin(state.angle) };
   const oldRight = { x: -oldForward.y, y: oldForward.x };
@@ -174,11 +195,12 @@ export function stepCarPhysics(
   // agarre, casi toda la velocidad lateral se cancela cada frame; con poco
   // agarre (hierba, freno de mano, o girar fuerte a velocidad), se
   // conserva y el coche desliza.
-  const corneringIntensity = Math.abs(input.steer) * speedFactor;
+  const corneringSpeedFactor = Math.sqrt(clamp(speedFactor / CORNERING_SPEED_SATURATION, 0, 1));
+  const corneringIntensity = Math.abs(input.steer) * corneringSpeedFactor;
   const corneringGripLoss = corneringIntensity * CORNERING_GRIP_LOSS;
   const baseLateralGrip = (input.handbrake ? config.handbrakeGrip : config.gripLateral) * surfaceGrip;
   const effectiveLateralGrip = clamp(baseLateralGrip - corneringGripLoss, MIN_LATERAL_GRIP, 1);
-  const forwardDecay = frameRateIndependentDecay(config.gripForward, dt);
+  const forwardDecay = frameRateIndependentDecay(config.gripForward / surfaceDrag, dt);
   const lateralDecay = frameRateIndependentDecay(1 - effectiveLateralGrip, dt);
 
   const newForwardSpeed = forwardSpeed * forwardDecay;

@@ -47,8 +47,8 @@ export class Car {
     return isSkidding(this.state);
   }
 
-  update(dt: number, input: CarInput, surfaceGrip = 1): void {
-    this.setState(stepCarPhysics(this.state, input, this.physics, dt, surfaceGrip));
+  update(dt: number, input: CarInput, surfaceGrip = 1, surfaceDrag = 1): void {
+    this.setState(stepCarPhysics(this.state, input, this.physics, dt, surfaceGrip, surfaceDrag));
   }
 
   /** Fija el estado físico y sincroniza el render (p. ej. tras resolver una colisión). */

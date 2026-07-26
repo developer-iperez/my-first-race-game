@@ -103,6 +103,13 @@ describe('stepCarPhysics', () => {
     expect(lateralOf(handbraking)).toBeGreaterThan(lateralOf(normal));
   });
 
+  it('higher surface drag slows forward speed more (off-track deceleration)', () => {
+    const moving: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
+    const onAsphalt = stepCarPhysics(moving, noSteerInput, baseConfig, 0.2, 1, 1);
+    const onMud = stepCarPhysics(moving, noSteerInput, baseConfig, 0.2, 1, 3);
+    expect(onMud.vx).toBeLessThan(onAsphalt.vx);
+  });
+
   it('lower surface grip increases lateral sliding', () => {
     const cornering: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
     const onAsphalt = stepCarPhysics(cornering, { throttle: 0, steer: 1, handbrake: false }, baseConfig, 0.2, 1);
