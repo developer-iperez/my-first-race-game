@@ -36,6 +36,7 @@ const OFFTRACK_GRIP_RETENTION = 0.9;
 
 export class RaceScene extends Phaser.Scene {
   private track!: TrackDefinition;
+  private map!: Phaser.Tilemaps.Tilemap;
   private car!: Car;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private handbrakeKey!: Phaser.Input.Keyboard.Key;
@@ -66,10 +67,12 @@ export class RaceScene extends Phaser.Scene {
     this.wasSettingsMenuOpen = false;
 
     this.sceneData = data;
-    this.track = TrackLoader.get(this, data.trackKey);
+    const loaded = TrackLoader.get(this, data.trackKey);
+    this.track = loaded.track;
+    this.map = loaded.map;
     this.carDefinition = CarLoader.get(this, data.carKey);
 
-    renderTrack(this, this.track);
+    renderTrack(this, this.map, this.track);
 
     // Cámara fija encuadrando el circuito completo (F3): sin scroll.
     this.cameras.main.setBounds(0, 0, this.track.size.width, this.track.size.height);

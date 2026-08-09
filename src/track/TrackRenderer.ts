@@ -2,35 +2,22 @@ import Phaser from 'phaser';
 import type { TrackDefinition, Waypoint } from '../config/schema/track';
 
 /**
- * Dibuja un circuito a partir de su TrackDefinition, usando los tiles de
- * pixel art precargados en BootScene (uno por superficie, más uno de
- * muro). La clave de textura de cada superficie es un mapeo fijo aquí, no
- * parte del esquema de datos: el JSON del circuito solo dice qué
- * superficie hay en cada celda, no de qué imagen se pinta.
+ * Dibuja un circuito: el layer visual "surface" del tilemap (rejilla de
+ * asfalto/hierba/arena, con los tiles de muro pintados encima como en el
+ * JSON original) más los marcadores de meta/checkpoints, dibujados igual
+ * que siempre a partir de `track.waypoints`. El layer "walls" del tilemap
+ * es solo lógico (colisión, ver TiledMapAdapter/TrackQuery) y no se
+ * renderiza aquí.
  */
-const SURFACE_TEXTURE_KEYS: Record<string, string> = {
-  asphalt: 'tile-asphalt',
-  grass: 'tile-grass',
-  sand: 'tile-sand',
-};
-const WALL_TEXTURE_KEY = 'tile-wall';
-const FALLBACK_TEXTURE_KEY = 'tile-grass';
+const TILESET_NAME = 'rally-tiles';
+const TILESET_IMAGE_KEY = 'tileset';
 
-export function renderTrack(scene: Phaser.Scene, track: TrackDefinition): void {
-  const { tileSize } = track;
-
-  track.layers.surface.forEach((row, rowIndex) => {
-    row.forEach((surfaceKey, colIndex) => {
-      const isWall = track.layers.walls[rowIndex]?.[colIndex] === 1;
-      const textureKey = isWall
-        ? WALL_TEXTURE_KEY
-        : (SURFACE_TEXTURE_KEYS[surfaceKey] ?? FALLBACK_TEXTURE_KEY);
-      scene.add
-        .image(colIndex * tileSize, rowIndex * tileSize, textureKey)
-        .setOrigin(0, 0)
-        .setDisplaySize(tileSize, tileSize);
-    });
-  });
+export function renderTrack(scene: Phaser.Scene, map: Phaser.Tilemaps.Tilemap, track: TrackDefinition): void {
+  const tileset = map.addTilesetImage(TILESET_NAME, TILESET_IMAGE_KEY);
+  if (!tileset) {
+    throw new Error(`No se pudo cargar el tileset "${TILESET_NAME}" (¿falta precargar "${TILESET_IMAGE_KEY}"?)`);
+  }
+  map.createLayer('surface', tileset, 0, 0);
 
   // Marcadores de meta/checkpoints por encima de los tiles.
   const graphics = scene.add.graphics();

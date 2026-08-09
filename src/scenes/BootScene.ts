@@ -28,6 +28,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image('tile-sand', 'tiles/sand.png');
     this.load.image('tile-wall', 'tiles/wall.png');
     this.load.image('particle-dust', 'tiles/particle-dust.png');
+    // Atlas empaquetado (asfalto/hierba/arena/muro, en ese orden) para el
+    // tileset de Tiled que consume TrackRenderer.ts vía Phaser.Tilemaps.
+    this.load.image('tileset', 'tiles/tileset.png');
 
     // Efectos de sonido sintetizados (v0.3), sin depender de bancos de
     // audio externos: motor (bucle), derrape (bucle), checkpoint y meta.

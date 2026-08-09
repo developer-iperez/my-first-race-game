@@ -1,8 +1,40 @@
 import { describe, expect, it } from 'vitest';
 import { parseTrack } from '../src/config/schema/track';
 import { parseCar } from '../src/config/schema/car';
-import trackFixture from '../public/tracks/rally-01.json';
 import carFixture from '../public/cars/rally-hatch.json';
+
+// public/tracks/*.json ya no tienen esta forma (son .tmj de Tiled, ver
+// TiledMapAdapter.ts): parseTrack se sigue probando aquí contra un objeto
+// con la forma de TrackDefinition, que es lo que realmente valida — el
+// adaptador de Tiled es quien produce ese objeto en tiempo de ejecución.
+const trackFixture = {
+  schemaVersion: 1,
+  id: 'test',
+  name: 'Test',
+  size: { width: 32, height: 16 },
+  tileSize: 16,
+  surfaces: {
+    asphalt: { grip: 1, drag: 1 },
+    grass: { grip: 0.6, drag: 1.06 },
+  },
+  layers: {
+    surface: [
+      ['asphalt', 'grass'],
+      ['grass', 'grass'],
+    ],
+    walls: [
+      [0, 0],
+      [0, 1],
+    ],
+  },
+  spawn: { x: 8, y: 8, angle: 0 },
+  waypoints: [
+    { x: 8, y: 8, type: 'start_finish', angle: 0, width: 128 },
+    { x: 24, y: 8, type: 'checkpoint' },
+  ],
+  laps: 3,
+  theme: 'test',
+};
 
 describe('parseTrack', () => {
   it('accepts the shipped example track', () => {
