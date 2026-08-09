@@ -22,7 +22,7 @@ describe('parseTrack', () => {
     const track = parseTrack(trackFixture);
     const startFinish = track.waypoints.find((w) => w.type === 'start_finish');
     expect(startFinish?.angle).toBe(0);
-    expect(startFinish?.width).toBe(64);
+    expect(startFinish?.width).toBe(128);
   });
 
   it('still accepts a start_finish waypoint without angle/width (falls back to a marker)', () => {

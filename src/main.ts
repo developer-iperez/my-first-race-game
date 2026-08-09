@@ -15,16 +15,16 @@ const config: Phaser.Types.Core.GameConfig = {
   // de WebGL en navegadores/móviles menos habituales.
   type: Phaser.CANVAS,
   parent: 'app',
-  width: 384,
-  height: 224,
+  width: 768,
+  height: 448,
   pixelArt: true,
   backgroundColor: '#000000',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     parent: 'app',
-    width: 384,
-    height: 224,
+    width: 768,
+    height: 448,
   },
   scene: [BootScene, TitleScene, RaceScene],
 };
