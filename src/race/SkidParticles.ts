@@ -6,8 +6,18 @@ import Phaser from 'phaser';
  * derrape — reutiliza la misma condición que ya dispara el sonido y el
  * tinte visual, sin duplicar la lógica de detección.
  */
+const SURFACE_TINTS: Record<string, number> = {
+  asphalt: 0x555555,
+  grass: 0x5f8f3f,
+  sand: 0xd8c08a,
+  dirt: 0x8a6a4a,
+  offtrack: 0x9a8b6a,
+  wall: 0x8a6a4a,
+};
+
 export class SkidParticles {
   private readonly emitter: Phaser.GameObjects.Particles.ParticleEmitter;
+  private currentSurfaceKey = '';
 
   constructor(scene: Phaser.Scene) {
     this.emitter = scene.add.particles(0, 0, 'particle-dust', {
@@ -23,7 +33,9 @@ export class SkidParticles {
     this.emitter.setDepth(40);
   }
 
-  update(x: number, y: number, angle: number, skidding: boolean): void {
+  update(x: number, y: number, angle: number, skidding: boolean, surfaceKey = 'asphalt'): void {
+    this.setSurface(surfaceKey);
+
     if (skidding) {
       // Un poco por detrás del centro del coche (opuesto al morro).
       this.emitter.setPosition(x - Math.cos(angle) * 6, y - Math.sin(angle) * 6);
@@ -31,6 +43,12 @@ export class SkidParticles {
     } else if (this.emitter.emitting) {
       this.emitter.stop();
     }
+  }
+
+  private setSurface(surfaceKey: string): void {
+    if (surfaceKey === this.currentSurfaceKey) return;
+    this.currentSurfaceKey = surfaceKey;
+    this.emitter.setParticleTint(SURFACE_TINTS[surfaceKey] ?? 0x999999);
   }
 
   /** Golpe contra un muro: una ráfaga corta de polvo en el punto de impacto. */

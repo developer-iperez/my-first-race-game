@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: S1.1–S1.4 implementados. S1.5 (superficies reales) es el siguiente.
+> Estado: S1.1–S1.5 implementados. S1.6 (input con rampa, WASD y gamepad) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -294,7 +294,7 @@ controlable.
 **Depende de:** S1.1, S1.2.
 **Esfuerzo:** L.
 
-### S1.5 — Superficies reales y muestreo por rueda
+### ✅ S1.5 — Superficies reales y muestreo por rueda
 
 **Objetivo:** que hierba, arena y asfalto se noten de verdad.
 

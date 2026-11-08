@@ -14,12 +14,41 @@ function inBounds(track: TrackDefinition, col: number, row: number): boolean {
   return row >= 0 && row < track.layers.surface.length && col >= 0 && col < track.layers.surface[row].length;
 }
 
-/** Agarre de la superficie bajo una posición del mundo (1 = normal). Fuera de mapa: sin agarre. */
-export function getSurfaceGripAt(track: TrackDefinition, x: number, y: number): number {
+export interface SurfaceSample {
+  surfaceKey: string;
+  grip: number;
+  drag: number;
+}
+
+export interface CarSurfaceSampling {
+  length: number;
+  width: number;
+  wheelbaseOffset: number;
+}
+
+export interface CarSurfaceSample extends SurfaceSample {
+  /** Muestras de las 4 ruedas (delantera/trasera × izquierda/derecha). */
+  wheels: SurfaceSample[];
+}
+
+/** Superficie bajo una posición del mundo. Fuera de mapa: sin agarre y drag alto. */
+export function getSurfaceAt(track: TrackDefinition, x: number, y: number): SurfaceSample {
   const { col, row } = toTileIndex(track, x, y);
-  if (!inBounds(track, col, row)) return 0;
+  if (!inBounds(track, col, row)) {
+    return { surfaceKey: 'offtrack', grip: 0, drag: OUT_OF_BOUNDS_DRAG };
+  }
   const surfaceKey = track.layers.surface[row][col];
-  return track.surfaces[surfaceKey]?.grip ?? 1;
+  const surface = track.surfaces[surfaceKey];
+  return {
+    surfaceKey,
+    grip: surface?.grip ?? 1,
+    drag: surface?.drag ?? 1,
+  };
+}
+
+/** Agarre de la superficie bajo una posición del mundo (1 = normal). */
+export function getSurfaceGripAt(track: TrackDefinition, x: number, y: number): number {
+  return getSurfaceAt(track, x, y).grip;
 }
 
 /**
@@ -29,10 +58,71 @@ export function getSurfaceGripAt(track: TrackDefinition, x: number, y: number): 
  * deslizar a velocidad de asfalto contra el borde de la pantalla.
  */
 export function getSurfaceDragAt(track: TrackDefinition, x: number, y: number): number {
-  const { col, row } = toTileIndex(track, x, y);
-  if (!inBounds(track, col, row)) return OUT_OF_BOUNDS_DRAG;
-  const surfaceKey = track.layers.surface[row][col];
-  return track.surfaces[surfaceKey]?.drag ?? 1;
+  return getSurfaceAt(track, x, y).drag;
+}
+
+function dominantSurfaceKey(wheels: SurfaceSample[]): string {
+  const counts = new Map<string, number>();
+  for (const wheel of wheels) {
+    counts.set(wheel.surfaceKey, (counts.get(wheel.surfaceKey) ?? 0) + 1);
+  }
+
+  let best = wheels[0]?.surfaceKey ?? 'asphalt';
+  let bestCount = 0;
+  for (const [key, count] of counts) {
+    if (count > bestCount) {
+      best = key;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+/**
+ * Muestrea el agarre y el drag en las 4 ruedas del coche. Usar solo el
+ * centro permitía tener medio chasis en hierba sin que se notara; con las
+ * ruedas, cruzar un bordillo o poner dos ruedas en arena cambia el coche.
+ */
+export function sampleCarSurfaces(
+  track: TrackDefinition,
+  x: number,
+  y: number,
+  angle: number,
+  sampling: CarSurfaceSampling,
+): CarSurfaceSample {
+  const halfWidth = Math.max(0, sampling.width / 2);
+  const wheelOffset =
+    sampling.wheelbaseOffset > 0
+      ? sampling.wheelbaseOffset
+      : Math.max(0, sampling.length / 2 - halfWidth);
+
+  const forwardX = Math.cos(angle);
+  const forwardY = Math.sin(angle);
+  const rightX = -forwardY;
+  const rightY = forwardX;
+
+  const positions = [
+    { longitudinal: wheelOffset, lateral: -halfWidth },
+    { longitudinal: wheelOffset, lateral: halfWidth },
+    { longitudinal: -wheelOffset, lateral: -halfWidth },
+    { longitudinal: -wheelOffset, lateral: halfWidth },
+  ];
+
+  const wheels = positions.map((position) => {
+    const wheelX = x + forwardX * position.longitudinal + rightX * position.lateral;
+    const wheelY = y + forwardY * position.longitudinal + rightY * position.lateral;
+    return getSurfaceAt(track, wheelX, wheelY);
+  });
+
+  const grip = wheels.reduce((sum, wheel) => sum + wheel.grip, 0) / wheels.length;
+  const drag = wheels.reduce((sum, wheel) => sum + wheel.drag, 0) / wheels.length;
+
+  return {
+    surfaceKey: dominantSurfaceKey(wheels),
+    grip,
+    drag,
+    wheels,
+  };
 }
 
 /** Si la posición del mundo cae sobre un tile de muro (colisión). */

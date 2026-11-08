@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { CarDefinition, CarPhysicsConfig } from '../config/schema/car';
+import type { SurfaceSample } from '../track/TrackQuery';
 import {
   stepCarPhysicsWithTelemetry,
   isSkidding,
@@ -7,6 +8,8 @@ import {
   type CarState,
   type DriveTelemetry,
 } from '../physics/carPhysics';
+
+const DEFAULT_SURFACE: SurfaceSample = { surfaceKey: 'asphalt', grip: 1, drag: 1 };
 
 /**
  * Entidad de coche construida enteramente a partir de un CarDefinition
@@ -25,6 +28,8 @@ export class Car {
   private readonly skidTint: number;
   /** Físicas efectivas usadas en la simulación: definition.physics + ajustes del jugador (dificultad). */
   private physics: CarPhysicsConfig;
+  /** Superficie media bajo las ruedas en el último frame (para polvo/sonido/tinte). */
+  private currentSurface: SurfaceSample = DEFAULT_SURFACE;
   /** Diagnóstico del último frame de física (ver DriveTelemetry) para el HUD de depuración. */
   telemetry?: DriveTelemetry;
 
@@ -55,16 +60,23 @@ export class Car {
     return isSkidding(this.state);
   }
 
-  update(dt: number, input: CarInput, surfaceGrip = 1, surfaceDrag = 1): void {
+  /** Superficie dominante bajo las ruedas (para polvo, sonido y tinte). */
+  get surfaceKey(): string {
+    return this.currentSurface.surfaceKey;
+  }
+
+  update(dt: number, input: CarInput, surface: SurfaceSample = DEFAULT_SURFACE): void {
+    this.currentSurface = surface;
     const { nextState, telemetry } = stepCarPhysicsWithTelemetry(
       this.state,
       input,
       this.physics,
       dt,
-      surfaceGrip,
-      surfaceDrag,
+      surface.grip,
+      surface.drag,
     );
     this.telemetry = telemetry;
+    this.telemetry.surfaceKey = surface.surfaceKey;
     this.setState(nextState);
   }
 

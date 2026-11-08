@@ -99,6 +99,16 @@
               "name": "surfaceKey",
               "type": "string",
               "value": "sand"
+            },
+            {
+              "name": "grip",
+              "type": "float",
+              "value": 0.75
+            },
+            {
+              "name": "drag",
+              "type": "float",
+              "value": 1.12
             }
           ]
         },

@@ -39,7 +39,7 @@ export class DriveTelemetryHud {
     if (!telemetry || !this.text.visible) return;
 
     const lines = [
-      `speed ${telemetry.speed.toFixed(0)} (${(telemetry.speedFactor * 100).toFixed(0)}%)`,
+      `speed ${telemetry.speed.toFixed(0)} (${(telemetry.speedFactor * 100).toFixed(0)}%)  surface ${telemetry.surfaceKey ?? '?'}`,
       `slip ${(telemetry.slipRatio * 100).toFixed(0)}%  grip ${(telemetry.effectiveLateralGrip * 100).toFixed(0)}%  loss ${(telemetry.corneringGripLoss * 100).toFixed(0)}%`,
       `handbrake ${telemetry.handbrake ? 'ON' : 'off'}  flick ${telemetry.isFlick ? `ON ${(telemetry.flickStrength * 100).toFixed(0)}%` : 'off'}`,
     ];

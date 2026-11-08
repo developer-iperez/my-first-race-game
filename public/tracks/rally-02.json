@@ -103,12 +103,12 @@
             {
               "name": "grip",
               "type": "float",
-              "value": 0.4
+              "value": 0.75
             },
             {
               "name": "drag",
               "type": "float",
-              "value": 1.15
+              "value": 1.12
             }
           ]
         },

@@ -53,9 +53,12 @@ export function buildTrackData(map: Phaser.Tilemaps.Tilemap): unknown {
       surfaceRow.push(surfaceKey);
       if (surfaceKey !== 'wall' && !(surfaceKey in surfaces)) {
         const { grip, drag } = surfaceTile.properties as { grip?: number; drag?: number };
-        if (grip !== undefined && drag !== undefined) {
-          surfaces[surfaceKey] = { grip, drag };
+        if (grip === undefined || drag === undefined) {
+          throw new Error(
+            `Circuito Tiled inválido: la superficie "${surfaceKey}" no define grip y drag en el tileset`,
+          );
         }
+        surfaces[surfaceKey] = { grip, drag };
       }
 
       wallRow.push(wallTile && wallTile.index !== -1 ? 1 : 0);

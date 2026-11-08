@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TrackLoader } from '../track/TrackLoader';
 import { renderTrack } from '../track/TrackRenderer';
-import { getSurfaceDragAt, getSurfaceGripAt } from '../track/TrackQuery';
+import { sampleCarSurfaces } from '../track/TrackQuery';
 import { CarLoader } from '../entities/CarLoader';
 import { Car } from '../entities/Car';
 import { TouchControls } from '../input/TouchControls';
@@ -260,7 +260,13 @@ export class RaceScene extends Phaser.Scene {
       // Carrera terminada: el coche se congela donde esté (no se procesa
       // más física ni entrada) y se oculta el indicador de objetivo.
       this.nextTargetIndicator.hide();
-      this.skidParticles.update(this.car.state.x, this.car.state.y, this.car.state.angle, false);
+      this.skidParticles.update(
+        this.car.state.x,
+        this.car.state.y,
+        this.car.state.angle,
+        false,
+        this.car.surfaceKey,
+      );
     } else {
       const input = this.readInput();
       const previousTargetIndex = this.lapTracker.nextTargetIndex;
@@ -272,11 +278,20 @@ export class RaceScene extends Phaser.Scene {
 
         this.raceElapsedMs += dt * 1000;
 
-        const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
-        const surfaceDrag = getSurfaceDragAt(this.track, this.car.state.x, this.car.state.y);
+        const surface = sampleCarSurfaces(
+          this.track,
+          this.car.state.x,
+          this.car.state.y,
+          this.car.state.angle,
+          {
+            length: this.carDefinition.physics.length,
+            width: this.carDefinition.physics.width,
+            wheelbaseOffset: this.carDefinition.appearance.wheelbaseOffset,
+          },
+        );
 
         const previousCarState = this.car.state;
-        this.car.update(dt, input, surfaceGrip, surfaceDrag);
+        this.car.update(dt, input, surface);
 
         const collision = resolveCarCollision(
           previousCarState,
@@ -343,7 +358,13 @@ export class RaceScene extends Phaser.Scene {
 
       const speed = Math.hypot(this.car.state.vx, this.car.state.vy);
       this.audio.update(speed, this.car.maxSpeed, this.car.isSkidding);
-      this.skidParticles.update(this.car.state.x, this.car.state.y, this.car.state.angle, this.car.isSkidding);
+      this.skidParticles.update(
+        this.car.state.x,
+        this.car.state.y,
+        this.car.state.angle,
+        this.car.isSkidding,
+        this.car.surfaceKey,
+      );
 
       if (lapState.finished) {
         this.nextTargetIndicator.hide();

@@ -106,5 +106,9 @@ recuperar del historial de commits.
   Nuevo subviraje, agarre lateral progresivo (el freno de mano ya no devuelve
   el agarre de golpe), drag de superficie aditivo para que hierba/arena no
   dejen el coche clavado y marcha atrás con retardo de 0,18 s.
+- S1.5: muestreo de grip/drag en las 4 ruedas; hierba y arena afectan de
+  verdad (antes solo se miraba el centro). Polvo tintado por superficie,
+  `surfaceKey` en telemetría y validación de que todo tile transitable define
+  grip/drag.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

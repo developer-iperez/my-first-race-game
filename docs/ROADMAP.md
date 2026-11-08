@@ -56,6 +56,8 @@ Que *conducir sea divertido* aunque no haya arte final.
   de impacto
 - ✅ Re-tuning de conducción con objetivos medibles: aceleración, frenada,
   coasting, subviraje, derrape y recuperación (`npm run feel` 10/10)
+- ✅ Superficies reales: grip/drag muestreados en las 4 ruedas, hierba/arena
+  con datos validados y polvo tintado por superficie
 
 ## v1.0 — Primera versión completa 🟨
 - ✅ Pantalla de inicio (título + "pulsa para empezar", con ajustes de

@@ -215,6 +215,8 @@ export interface DriveTelemetry {
   handbrake: boolean;
   /** Ratio de derrape (velocidad lateral / velocidad total) del estado RESULTANTE tras este paso. */
   slipRatio: number;
+  /** Superficie dominante bajo las ruedas; la rellena Car, que es quien muestrea. */
+  surfaceKey?: string;
 }
 
 interface StepResult {
@@ -348,9 +350,10 @@ function computeStep(
     1,
   );
   const baseLateralGrip = (input.handbrake ? config.handbrakeGrip : config.gripLateral) * surfaceGrip;
-  const minLateralGrip = input.handbrake
-    ? (config.handbrakeMinGrip ?? DEFAULT_MIN_LATERAL_GRIP_HANDBRAKE)
-    : (config.minLateralGrip ?? DEFAULT_MIN_LATERAL_GRIP_STEER);
+  const minLateralGrip =
+    (input.handbrake
+      ? (config.handbrakeMinGrip ?? DEFAULT_MIN_LATERAL_GRIP_HANDBRAKE)
+      : (config.minLateralGrip ?? DEFAULT_MIN_LATERAL_GRIP_STEER)) * surfaceGrip;
   const targetLateralGrip = clamp(baseLateralGrip - corneringGripLoss, minLateralGrip, 1);
 
   // El agarre no salta de 0.05 a 0.9 en un frame al soltar el freno de
