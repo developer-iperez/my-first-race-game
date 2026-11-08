@@ -60,6 +60,7 @@ Que *conducir sea divertido* aunque no haya arte final.
   con datos validados y polvo tintado por superficie
 - ✅ Input unificado teclado/táctil/gamepad, volante con rampa y WASD
 - ✅ HUD de conducción: velocímetro, marcha, RPM, derrape y delta de vuelta
+- ✅ Validación de contenido de circuitos en CI (`npm run validate`)
 
 ## v1.0 — Primera versión completa 🟨
 - ✅ Pantalla de inicio (título + "pulsa para empezar", con ajustes de

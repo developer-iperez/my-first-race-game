@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: S1.1–S1.7 implementados. S1.8 (tests de aceptación de contenido) es el siguiente.
+> Estado: Sprint 1 completo (S1.1–S1.8). S2.1 (diseño de los circuitos) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -383,7 +383,7 @@ coche.
 **Depende de:** S1.4.
 **Esfuerzo:** M.
 
-### S1.8 — Tests de aceptación y contenido
+### ✅ S1.8 — Tests de aceptación y contenido
 
 **Objetivo:** que las mejoras no se rompan en silencio.
 

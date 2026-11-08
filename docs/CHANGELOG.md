@@ -115,5 +115,7 @@ recuperar del historial de commits.
 - S1.7: HUD de conducción con velocímetro, marcha, RPM, derrape y delta de
   vuelta; el panel de velocidad se coloca junto al botón de ajustes para no
   tapar los waypoints del borde superior.
+- S1.8: validación de contenido (`npm run validate`) para superficies, spawn,
+  waypoints, meta y longitud de vuelta; CI ejecuta test + validate + build.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.
