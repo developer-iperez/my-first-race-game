@@ -66,10 +66,15 @@ describe('evaluateFeelMetrics', () => {
     expect(results.every((result) => typeof result.passes === 'boolean')).toBe(true);
   });
 
-  it('el informe incluye el estado PASS/FAIL y el aviso de S1.4', () => {
+  it('el coche de producción cumple todos los objetivos de S1', () => {
+    const failed = evaluateFeelMetrics(measureFeel(physics)).filter((result) => !result.passes);
+    expect(failed.map((result) => result.id)).toEqual([]);
+  });
+
+  it('el informe incluye el estado PASS/FAIL y el recuento final', () => {
     const report = formatFeelReport(measureFeel(physics));
     expect(report).toContain('Feel metrics');
     expect(report).toMatch(/PASS|FAIL/);
-    expect(report).toContain('S1.4');
+    expect(report).toMatch(/métricas dentro del objetivo/);
   });
 });

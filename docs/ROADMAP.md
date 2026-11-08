@@ -54,6 +54,8 @@ Que *conducir sea divertido* aunque no haya arte final.
   medibles (ver `docs/AUDITORIA.md`)
 - ✅ Colisión real del coche contra muros (cápsula + sweep), con polvo y sonido
   de impacto
+- ✅ Re-tuning de conducción con objetivos medibles: aceleración, frenada,
+  coasting, subviraje, derrape y recuperación (`npm run feel` 10/10)
 
 ## v1.0 — Primera versión completa 🟨
 - ✅ Pantalla de inicio (título + "pulsa para empezar", con ajustes de

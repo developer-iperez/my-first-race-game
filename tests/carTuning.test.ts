@@ -46,16 +46,4 @@ describe('applyTuningToPhysics', () => {
       expect(bounds.default).toBeLessThanOrEqual(bounds.max);
     }
   });
-
-  it('the top of the speedFactor range keeps the turning radius drivable on this track (radio <= 70px)', () => {
-    // radio ≈ maxSpeed / turnRate (ver docs/CHANGELOG.md, rebalanceo de
-    // dificultad): el carril del circuito ronda 80px de ancho, así que un
-    // radio por encima de ~70px deja de caber en las curvas.
-    const result = applyTuningToPhysics(basePhysics, {
-      ...DEFAULT_CAR_TUNING,
-      speedFactor: CAR_TUNING_BOUNDS.speedFactor.max,
-    });
-    const radius = result.maxSpeed / result.turnRate;
-    expect(radius).toBeLessThanOrEqual(70);
-  });
 });

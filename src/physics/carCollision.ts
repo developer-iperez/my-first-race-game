@@ -259,6 +259,8 @@ function interpolateState(previous: CarState, next: CarState, t: number): CarSta
     vx: next.vx,
     vy: next.vy,
     yawRate: next.yawRate,
+    lateralGrip: next.lateralGrip,
+    reverseHold: next.reverseHold,
   };
 }
 

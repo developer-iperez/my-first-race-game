@@ -102,6 +102,9 @@ recuperar del historial de commits.
   al perder foco/visibilidad; evita túneles y saltos tras un freeze.
 - S1.3: colisión real del coche (cápsula de 3 círculos + sweep) contra muros;
   la isla de Bosque Bravo ya no se atraviesa. Impacto con polvo y sonido.
-  La métrica del muro pasa a PASS; el resto sigue pendiente de S1.4.
+- S1.4: re-tuning completo de conducción; `npm run feel` pasa de 1/10 a 10/10.
+  Nuevo subviraje, agarre lateral progresivo (el freno de mano ya no devuelve
+  el agarre de golpe), drag de superficie aditivo para que hierba/arena no
+  dejen el coche clavado y marcha atrás con retardo de 0,18 s.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

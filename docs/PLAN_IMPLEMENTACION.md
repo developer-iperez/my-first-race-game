@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: S1.1, S1.2 y S1.3 implementados. S1.4 (re-tuning) es el siguiente.
+> Estado: S1.1–S1.4 implementados. S1.5 (superficies reales) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -251,7 +251,7 @@ atraviesen muros tras un tirón de framerate.
 **Depende de:** S1.2.
 **Esfuerzo:** L.
 
-### S1.4 — Re-tuning del modelo de conducción
+### ✅ S1.4 — Re-tuning del modelo de conducción
 
 **Objetivo:** dar peso al coche y convertir el derrape en una acción
 controlable.

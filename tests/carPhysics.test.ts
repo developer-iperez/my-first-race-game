@@ -32,8 +32,12 @@ describe('stepCarPhysics', () => {
   });
 
   it('reverses from rest, but accelerates backwards more gently than it accelerates forwards', () => {
-    const forward = stepCarPhysics(stillState, { ...noSteerInput, throttle: 1 }, baseConfig, 1 / 60);
-    const reverse = stepCarPhysics(stillState, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
+    let forward = stillState;
+    let reverse = stillState;
+    for (let i = 0; i < 30; i++) {
+      forward = stepCarPhysics(forward, { ...noSteerInput, throttle: 1 }, baseConfig, 1 / 60);
+      reverse = stepCarPhysics(reverse, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
+    }
     // Marcha atrás: se mueve hacia -x...
     expect(reverse.vx).toBeLessThan(0);
     // ...pero con menos empuje que hacia delante (no debe usar el frenado
@@ -41,14 +45,31 @@ describe('stepCarPhysics', () => {
     expect(Math.abs(reverse.vx)).toBeLessThan(Math.abs(forward.vx));
   });
 
+  it('mantener atrás desde parado espera antes de engranar la marcha atrás', () => {
+    const firstFrame = stepCarPhysics(stillState, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
+    expect(firstFrame.vx).toBeCloseTo(0);
+    expect(firstFrame.reverseHold).toBeGreaterThan(0);
+
+    let state = stillState;
+    for (let i = 0; i < 15; i++) {
+      state = stepCarPhysics(state, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
+    }
+    expect(state.vx).toBeLessThan(0);
+  });
+
   it('braking while moving forward is stronger than reverse acceleration (freno != marcha atrás)', () => {
     const movingForward: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
     const braking = stepCarPhysics(movingForward, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
-    const reverseFromRest = stepCarPhysics(stillState, { ...noSteerInput, throttle: -1 }, baseConfig, 1 / 60);
+    const reverseAfterDelay = stepCarPhysics(
+      { ...stillState, reverseHold: 0.2 },
+      { ...noSteerInput, throttle: -1 },
+      baseConfig,
+      1 / 60,
+    );
     // El frenado (yendo hacia delante) aplica más deceleración que el
-    // empuje de la marcha atrás desde parado.
-    const brakingDelta = movingForward.vx - braking.vx; // cuánto ha frenado
-    const reverseDelta = Math.abs(reverseFromRest.vx); // cuánto ha empujado atrás
+    // empuje de la marcha atrás ya engranada.
+    const brakingDelta = movingForward.vx - braking.vx;
+    const reverseDelta = Math.abs(reverseAfterDelay.vx);
     expect(brakingDelta).toBeGreaterThan(reverseDelta);
   });
 
@@ -311,12 +332,14 @@ describe('stepCarPhysics', () => {
       expect(slipRatio(afterFlick)).toBeGreaterThan(slipRatio(direct));
     });
 
-    it('even a single-frame flick tap (not just a held one) still gives a noticeably bigger slide', () => {
+    it('even a single-frame flick tap (not just a held one) still gives a bigger slide', () => {
       const straight: CarState = { x: 0, y: 0, angle: 0, vx: 150, vy: 0 };
       const flicked = stepCarPhysics(straight, { throttle: 1, steer: -1, handbrake: false }, baseConfig, 1 / 60);
       const afterFlick = simulateFrames(flicked, { throttle: 1, steer: 1, handbrake: false }, 12);
       const direct = simulateFrames(straight, { throttle: 1, steer: 1, handbrake: false }, 12);
-      expect(slipRatio(afterFlick)).toBeGreaterThan(slipRatio(direct) * 1.2);
+      // El modelo nuevo reduce a propósito el latigazo del flick; el efecto
+      // sigue existiendo, pero ya no es un empujón desproporcionado.
+      expect(slipRatio(afterFlick)).toBeGreaterThan(slipRatio(direct) * 1.08);
     });
 
     it('countersteering to recover an existing drift does not get treated as a fresh flick (no extra kick)', () => {

@@ -30,11 +30,24 @@ export interface CarState {
   /**
    * Velocidad angular actual (rad/s). Con inercia: se acerca al objetivo
    * marcado por el volante en vez de igualarlo de golpe cada frame (ver
-   * YAW_CATCH_UP_RATE). Opcional: si no se pasa, se asume igual al
+   * DEFAULT_YAW_CATCH_UP_RATE). Opcional: si no se pasa, se asume igual al
    * objetivo instantáneo (coche recién creado, sin inercia de giro previa
    * que arrastrar).
    */
   yawRate?: number;
+  /**
+   * Agarre lateral efectivo del frame anterior (0..1). Se suaviza para que
+   * soltar el freno de mano no devuelva el agarre de golpe: las ruedas
+   * tardan unos frames en volver a morder. Opcional: si no se pasa, se usa
+   * el objetivo de este frame (primer frame del coche).
+   */
+  lateralGrip?: number;
+  /**
+   * Tiempo acumulado manteniendo "atrás" con el coche parado. Evita que
+   * frenar hasta cero encadene marcha atrás sin querer: hay que sostener
+   * 0,18 s para que el coche empiece a retroceder.
+   */
+  reverseHold?: number;
 }
 
 export interface CarInput {
@@ -49,13 +62,16 @@ export interface CarInput {
 export type SurfaceGrip = number;
 
 /**
- * Multiplicador de resistencia al avance de la superficie bajo el coche
- * (asfalto=1, hierba>1...). A diferencia de SurfaceGrip (que solo afecta al
- * agarre lateral, es decir cuánto derrapa), esto frena la velocidad hacia
- * delante: sin esto, salirse de la pista solo hacía que el coche patinara
- * más de lado, pero seguía corriendo prácticamente igual de rápido hacia
- * donde apuntaba — el jugador podía irse fuera de la zona asfaltada y
- * mantener casi toda la velocidad indefinidamente.
+ * Resistencia al avance de la superficie bajo el coche (asfalto=1,
+ * hierba>1...). A diferencia de SurfaceGrip (que solo afecta al agarre
+ * lateral, es decir cuánto derrapa), esto frena la velocidad hacia delante:
+ * sin esto, salirse de la pista solo hacía que el coche patinara más de
+ * lado, pero seguía corriendo prácticamente igual de rápido hacia donde
+ * apuntaba.
+ *
+ * Cada punto por encima de 1 añade `SURFACE_DRAG_ACCEL` px/s² de
+ * deceleración, de forma aditiva: así 1.06 en hierba frena un poco y 1.2 en
+ * arena frena más, sin depender de la retención interna del motor.
  */
 export type SurfaceDrag = number;
 
@@ -63,99 +79,107 @@ const clamp = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, value));
 
 /**
+ * Defaults de handling. Los valores tuneados del coche pueden vivir en su
+ * JSON (`public/cars/*.json`); si un campo no aparece, se usa el default de
+ * aquí. Así los datos antiguos siguen funcionando y el tuning fino no exige
+ * tocar código.
+ *
  * Cuánto agarre lateral como máximo se resta al girar fuerte a alta
- * velocidad (más derrape en curvas cerradas tomadas rápido). Con el
- * volante a fondo y a velocidad máxima se llega a perder esta fracción de
- * agarre; girando suave o a baja velocidad casi no afecta, así que las
- * maniobras lentas y precisas (aparcar, esquivar) no se ven penalizadas.
+ * velocidad (más derrape en curvas cerradas tomadas rápido).
  */
-const CORNERING_GRIP_LOSS = 0.9;
+const DEFAULT_CORNERING_GRIP_LOSS = 0.9;
 /**
  * Fracción de maxSpeed a partir de la cual girar fuerte pierde el máximo de
- * agarre lateral posible (ver CORNERING_GRIP_LOSS). Por debajo satura antes
- * de llegar a velocidad punta: así el derrape no depende de ir pegado al
- * tope de velocidad ni de mantener el acelerador a fondo en la curva (con
- * frenos fuertes, soltar gas frena mucho y sin esto el agarre se recuperaba
- * casi al instante, apagando el derrape).
+ * agarre lateral posible (ver DEFAULT_CORNERING_GRIP_LOSS). Por debajo
+ * satura antes de llegar a velocidad punta: así el derrape no depende de ir
+ * pegado al tope de velocidad.
  */
-const CORNERING_SPEED_SATURATION = 0.7;
+const DEFAULT_CORNERING_SPEED_SATURATION = 0.7;
 /**
  * Agarre lateral mínimo garantizado SOLO por girar fuerte (sin freno de
- * mano). Se deja más alto que el mínimo absoluto (ver
- * MIN_LATERAL_GRIP_HANDBRAKE) a propósito: si girar fuerte por sí solo ya
- * saturase hasta el mismo suelo que el freno de mano, pisar el freno de
- * mano a mitad de curva no cambiaría nada (ya se estaba en el suelo) — el
- * freno de mano necesita su propio hueco por debajo para notarse siempre,
- * incluso ya derrapando por la curva.
+ * mano). Se deja más alto que el mínimo con freno de mano a propósito: si
+ * girar fuerte por sí solo ya saturase hasta el mismo suelo que el freno de
+ * mano, pisar el freno de mano a mitad de curva no cambiaría nada.
  */
-const MIN_LATERAL_GRIP_STEER = 0.05;
-/** Agarre lateral mínimo con freno de mano: más bajo que MIN_LATERAL_GRIP_STEER (ver arriba), para un derrape más profundo siempre disponible. */
-const MIN_LATERAL_GRIP_HANDBRAKE = 0.015;
+const DEFAULT_MIN_LATERAL_GRIP_STEER = 0.05;
+/** Agarre lateral mínimo con freno de mano: más bajo, para un derrape más profundo siempre disponible. */
+const DEFAULT_MIN_LATERAL_GRIP_HANDBRAKE = 0.015;
 
 /**
  * Boost temporal de pérdida de agarre lateral al invertir el sentido de la
- * rotación (yawRate) que ya llevaba el coche — el "contravolante rápido"
- * (Scandinavian flick): dar un golpe de volante al lado contrario y
- * enseguida al lado de la curva. Se calcula sin guardar estado nuevo:
- * mientras el objetivo (targetYawRate) apunta en sentido contrario a la
- * rotación que el coche YA llevaba (previousYawRate), cuanto más fuerte
- * llevaba esa rotación previa, más se "carga" el derrape al cambiar de
- * sentido — como el peso del coche balanceándose de un lado a otro. Se
+ * rotación (yawRate) — el "contravolante rápido" (Scandinavian flick). Se
  * desvanece solo en un par de frames porque previousYawRate decae por su
- * propia inercia (YAW_CATCH_UP_RATE) frame a frame.
+ * propia inercia.
  */
-const FLICK_GRIP_LOSS_BOOST = 0.85;
+const DEFAULT_FLICK_GRIP_LOSS_BOOST = 0.85;
 /**
  * Fracción de la velocidad total que se inyecta como velocidad lateral al
- * detectar un flick (ver FLICK_GRIP_LOSS_BOOST) — el "empujón" real que
- * hace que el derrape se note y se sostenga, no solo un hueco de agarre
- * momentáneo.
+ * detectar un flick: el "empujón" real que sostiene el derrape. Se mantiene
+ * bajo para que no se sienta como un latigazo artificial.
  */
-const FLICK_LATERAL_KICK = 1.6;
+const DEFAULT_FLICK_LATERAL_KICK = 0.3;
 /**
- * Ratio de derrape previo por debajo del cual se considera que el coche
- * "no estaba ya derrapando" y por tanto un cambio de sentido de yawRate es
- * un flick nuevo, no una recuperación de un derrape existente (ver arriba).
+ * Ratio de derrape previo por debajo del cual un cambio de sentido de
+ * yawRate se considera un flick nuevo, no la recuperación de un derrape.
  */
-const FLICK_MAX_PRIOR_SLIP = 0.3;
+const DEFAULT_FLICK_MAX_PRIOR_SLIP = 0.3;
 
 /**
  * Retención de velocidad hacia delante por frame a 60fps con el freno de
- * mano puesto (bloqueo de ruedas traseras = frenada real, no solo derrape).
- * Con 0.90 se pierde la mitad de la velocidad en ~6 frames (~0.1s): un
- * frenado fuerte y notable, pero no instantáneo — se puede modular
- * soltando el freno antes de perder toda la velocidad.
+ * mano puesto. 0.90 perdía la mitad de la velocidad en ~6 frames; con 0.97
+ * el freno de mano derrapa sin convertirse en un ancla instantánea.
  */
-const HANDBRAKE_FORWARD_RETENTION = 0.9;
+const DEFAULT_HANDBRAKE_FORWARD_RETENTION = 0.97;
 
 /**
  * Fracción del hueco entre la velocidad angular actual y la que pide el
  * volante que se cierra cada frame a 60fps CUANDO EL COCHE TIENE BUEN
- * AGARRE (yendo derecho, sin patinar): 1 = respuesta instantánea al
- * volante (como conducir normal, sin inercia perceptible). No es un techo
- * ni un bloqueo — es cuánto "pesa" girar el morro.
+ * AGARRE. No es un techo ni un bloqueo: es cuánto "pesa" girar el morro.
  */
-const YAW_CATCH_UP_RATE = 0.65;
+const DEFAULT_YAW_CATCH_UP_RATE = 0.65;
 /**
  * Cuánto reduce el agarre lateral bajo (coche ya patinando) esa misma
  * capacidad de cambiar de velocidad angular: a más derrape, más cuesta
- * redirigir el morro — como recoger un derrape de verdad, hace falta
- * sostener el volante un momento para que "muerda", en vez de saltar al
- * instante. Se aplica igual entrando o saliendo del derrape (contravolante
- * incluido): no hay ningún caso especial, solo inercia continua.
+ * redirigir el morro. Se aplica igual entrando o saliendo del derrape.
  */
-const YAW_INERTIA_FROM_SLIP = 0.85;
-/** Capacidad mínima de cambiar de velocidad angular incluso a patinazo completo, para que el volante nunca deje de responder del todo. */
-const MIN_YAW_CATCH_UP_RATE = 0.12;
+const DEFAULT_YAW_INERTIA_FROM_SLIP = 0.85;
+/** Capacidad mínima de cambiar de velocidad angular incluso a patinazo completo. */
+const DEFAULT_MIN_YAW_CATCH_UP_RATE = 0.12;
 
 /**
  * Fracción de la potencia del motor (enginePower) que se usa al ir marcha
- * atrás, para que dé menos aceleración que hacia delante — un coche de
- * carreras acelera mucho peor en reversa. NO afecta al frenado: pisar
- * "atrás" yendo hacia delante sigue usando brakingPower (fuerte); esto solo
- * entra cuando el coche está parado o ya retrocediendo.
+ * atrás, para que dé menos aceleración que hacia delante. NO afecta al
+ * frenado: pisar "atrás" yendo hacia delante sigue usando brakingPower.
  */
-const REVERSE_POWER_FACTOR = 0.4;
+const DEFAULT_REVERSE_POWER_FACTOR = 0.4;
+/** Tiempo que hay que sostener "atrás" desde parado antes de engranar la marcha atrás. */
+const REVERSE_DELAY_SECONDS = 0.18;
+
+/**
+ * Subviraje: factor que reduce el giro a alta velocidad. Con 0 el radio es
+ * constante (como el modelo antiguo); con valores altos el coche abre la
+ * trazada al acelerar, que es lo que da sensación de peso.
+ */
+const DEFAULT_UNDERSTEER = 0;
+
+/**
+ * Suavizado del agarre lateral. Al girar o frenar, el agarre cae rápido
+ * (dropRate alto) para que el coche reaccione; al soltar el freno de mano,
+ * vuelve lento (riseRate bajo) para que la recuperación no sea un
+ * interruptor. Ambos son "fracción del hueco por frame a 60 fps" y se
+ * corrigen por dt.
+ */
+const DEFAULT_GRIP_DROP_RATE = 0.5;
+const DEFAULT_GRIP_RISE_RATE = 0.05;
+
+/**
+ * Cuánta deceleración extra (px/s²) añade una superficie por cada punto de
+ * `drag` por encima de 1. Con el modelo de retención por frame antiguo,
+ * dividir por `drag` hacía que hierba (1.06) pasase de perder un 2% a un 6%
+ * por frame: con el coche nuevo, eso lo dejaba casi parado. Aquí la
+ * resistencia es aditiva y escala igual a cualquier velocidad base.
+ */
+const SURFACE_DRAG_ACCEL = 1300;
 
 /**
  * Aplica un factor de "agarre/fricción por frame a 60fps" de forma
@@ -220,8 +244,15 @@ function computeStep(
   // delante — así, aunque el coche esté derrapando de lado, mantiene
   // autoridad para poder corregir el derrape. El sentido (adelante/marcha
   // atrás) depende de hacia dónde se avanza.
+  //
+  // El subviraje reduce el giro a alta velocidad: el coche no puede cerrar
+  // la misma curva a 300 px/s que a 80. Con understeer=0 se recupera el
+  // comportamiento "radio constante" del modelo antiguo.
   const turnDirection = Math.sign(forwardSpeedBefore) || 1;
-  const targetYawRate = input.steer * config.turnRate * speedFactor * turnDirection;
+  const understeer = config.understeer ?? DEFAULT_UNDERSTEER;
+  const understeerScale = 1 + understeer * speedFactor * speedFactor;
+  const targetYawRate =
+    (input.steer * config.turnRate * speedFactor * turnDirection) / understeerScale;
 
   // La velocidad angular REAL no salta al objetivo de golpe: tiene
   // inercia, más cuanto más esté patinando ya el coche (priorSlipRatio).
@@ -231,8 +262,9 @@ function computeStep(
   // interruptor. No distingue entrar/salir del derrape: la misma fórmula
   // vale para iniciar como para corregir, sin casos especiales.
   const yawCatchUp = clamp(
-    YAW_CATCH_UP_RATE * (1 - priorSlipRatio * YAW_INERTIA_FROM_SLIP),
-    MIN_YAW_CATCH_UP_RATE,
+    (config.yawCatchUpRate ?? DEFAULT_YAW_CATCH_UP_RATE) *
+      (1 - priorSlipRatio * (config.yawInertiaFromSlip ?? DEFAULT_YAW_INERTIA_FROM_SLIP)),
+    config.minYawCatchUpRate ?? DEFAULT_MIN_YAW_CATCH_UP_RATE,
     1,
   );
   const yawRetention = frameRateIndependentDecay(1 - yawCatchUp, dt);
@@ -246,13 +278,19 @@ function computeStep(
   // se mueva el coche: si va hacia delante es FRENAR (brakingPower, fuerte);
   // si está parado o ya retrocede es MARCHA ATRÁS (más floja que acelerar).
   const throttle = clamp(input.throttle, -1, 1);
+  const reversePower = config.enginePower * (config.reversePowerFactor ?? DEFAULT_REVERSE_POWER_FACTOR);
   let power: number;
+  let reverseHold = 0;
   if (throttle >= 0) {
     power = config.enginePower;
   } else if (forwardSpeedBefore > 0) {
     power = config.brakingPower;
+  } else if (forwardSpeedBefore < -1) {
+    // Ya está retrocediendo: no hace falta volver a esperar el delay.
+    power = reversePower;
   } else {
-    power = config.enginePower * REVERSE_POWER_FACTOR;
+    reverseHold = (state.reverseHold ?? 0) + dt;
+    power = reverseHold >= REVERSE_DELAY_SECONDS ? reversePower : 0;
   }
   const acceleration = (throttle * power) / config.mass;
 
@@ -279,15 +317,18 @@ function computeStep(
   //
   // La misma inversión de signo (previousYawRate vs targetYawRate) ocurre
   // también al RECUPERAR un derrape ya en marcha con contravolante (el
-  // mecanismo de inercia de yaw ya cubre ese caso, ver YAW_INERTIA_FROM_SLIP)
+  // mecanismo de inercia de yaw ya cubre ese caso, ver DEFAULT_YAW_INERTIA_FROM_SLIP)
   // — por eso el flick solo se activa si el coche NO estaba ya derrapando
   // fuerte (priorSlipRatio bajo): así se distingue "provocar un derrape
   // nuevo con un golpe de volante" de "corregir uno que ya existe", que son
   // el mismo cambio de signo pero deben sentirse distinto.
-  const isFlick = Math.sign(previousYawRate) * Math.sign(targetYawRate) < 0 && priorSlipRatio < FLICK_MAX_PRIOR_SLIP;
+  const isFlick =
+    Math.sign(previousYawRate) * Math.sign(targetYawRate) < 0 &&
+    priorSlipRatio < (config.flickMaxPriorSlip ?? DEFAULT_FLICK_MAX_PRIOR_SLIP);
   const flickStrength = isFlick ? clamp(Math.abs(previousYawRate) / config.turnRate, 0, 1) : 0;
   if (flickStrength > 0) {
-    lateralSpeed += -Math.sign(targetYawRate) * flickStrength * FLICK_LATERAL_KICK * totalSpeedBefore;
+    const flickImpulse = config.flickImpulse ?? DEFAULT_FLICK_LATERAL_KICK;
+    lateralSpeed += -Math.sign(targetYawRate) * flickStrength * flickImpulse * totalSpeedBefore;
   }
 
   // Convención de "grip" (docs/ANALISIS.md §3.4): mayor agarre = menos
@@ -295,22 +336,68 @@ function computeStep(
   // agarre, casi toda la velocidad lateral se cancela cada frame; con poco
   // agarre (hierba, freno de mano, o girar fuerte a velocidad), se
   // conserva y el coche desliza.
-  const corneringSpeedFactor = Math.sqrt(clamp(speedFactor / CORNERING_SPEED_SATURATION, 0, 1));
+  const corneringSpeedSaturation =
+    config.corneringSpeedSaturation ?? DEFAULT_CORNERING_SPEED_SATURATION;
+  const corneringSpeedFactor = Math.sqrt(clamp(speedFactor / corneringSpeedSaturation, 0, 1));
   const corneringIntensity = Math.abs(input.steer) * corneringSpeedFactor;
-  const flickGripLoss = flickStrength * FLICK_GRIP_LOSS_BOOST;
-  const corneringGripLoss = clamp(corneringIntensity * CORNERING_GRIP_LOSS + flickGripLoss, 0, 1);
+  const flickGripLoss =
+    flickStrength * (config.flickGripLossBoost ?? DEFAULT_FLICK_GRIP_LOSS_BOOST);
+  const corneringGripLoss = clamp(
+    corneringIntensity * (config.corneringGripLoss ?? DEFAULT_CORNERING_GRIP_LOSS) + flickGripLoss,
+    0,
+    1,
+  );
   const baseLateralGrip = (input.handbrake ? config.handbrakeGrip : config.gripLateral) * surfaceGrip;
-  const minLateralGrip = input.handbrake ? MIN_LATERAL_GRIP_HANDBRAKE : MIN_LATERAL_GRIP_STEER;
-  const effectiveLateralGrip = clamp(baseLateralGrip - corneringGripLoss, minLateralGrip, 1);
+  const minLateralGrip = input.handbrake
+    ? (config.handbrakeMinGrip ?? DEFAULT_MIN_LATERAL_GRIP_HANDBRAKE)
+    : (config.minLateralGrip ?? DEFAULT_MIN_LATERAL_GRIP_STEER);
+  const targetLateralGrip = clamp(baseLateralGrip - corneringGripLoss, minLateralGrip, 1);
+
+  // El agarre no salta de 0.05 a 0.9 en un frame al soltar el freno de
+  // mano: cae rápido cuando se pierde, pero vuelve lento cuando la rueda
+  // intenta morder otra vez. Con riseRate=0.05 tarda ~0,3 s en recuperar la
+  // mitad del agarre; es la diferencia entre "el coche agarra" y "el coche
+  // da un tirón".
+  const previousLateralGrip = state.lateralGrip ?? targetLateralGrip;
+  const gripRate =
+    targetLateralGrip < previousLateralGrip
+      ? (config.gripDropRate ?? DEFAULT_GRIP_DROP_RATE)
+      : (config.gripRiseRate ?? DEFAULT_GRIP_RISE_RATE);
+  const gripRetention = frameRateIndependentDecay(1 - gripRate, dt);
+  const effectiveLateralGrip =
+    targetLateralGrip + (previousLateralGrip - targetLateralGrip) * gripRetention;
+
   // El freno de mano bloquea las ruedas traseras: además de soltar el
   // agarre lateral (arriba), eso también frena de verdad — sin esto, pisar
   // el freno de mano en línea recta (sin volante) no hacía absolutamente
   // nada distinto de simplemente soltar el acelerador.
-  const handbrakeForwardDecay = input.handbrake ? frameRateIndependentDecay(HANDBRAKE_FORWARD_RETENTION, dt) : 1;
-  const forwardDecay = frameRateIndependentDecay(config.gripForward / surfaceDrag, dt) * handbrakeForwardDecay;
+  const handbrakeForwardDecay = input.handbrake
+    ? frameRateIndependentDecay(
+        config.handbrakeForwardRetention ?? DEFAULT_HANDBRAKE_FORWARD_RETENTION,
+        dt,
+      )
+    : 1;
+  const baseForwardRetention = frameRateIndependentDecay(config.gripForward, dt);
+  // La resistencia de superficie nunca puede superar el 60% del empuje del
+  // motor: si no, una arena con drag alto dejaría el coche clavado al
+  // acelerar desde parado. Sigue habiendo diferencia entre superficies, pero
+  // cualquier superficie es transitable.
+  const engineAccel = config.enginePower / config.mass;
+  const surfaceDragAccel = Math.min(
+    engineAccel * 0.6,
+    Math.max(0, surfaceDrag - 1) * SURFACE_DRAG_ACCEL,
+  );
+  const dragDrop = surfaceDragAccel * dt;
+  const forwardAfterDrag =
+    forwardSpeed > 0
+      ? Math.max(0, forwardSpeed - dragDrop)
+      : forwardSpeed < 0
+        ? Math.min(0, forwardSpeed + dragDrop)
+        : 0;
+  const forwardDecay = baseForwardRetention * handbrakeForwardDecay;
   const lateralDecay = frameRateIndependentDecay(1 - effectiveLateralGrip, dt);
 
-  const newForwardSpeed = forwardSpeed * forwardDecay;
+  const newForwardSpeed = forwardAfterDrag * forwardDecay;
   const newLateralSpeed = lateralSpeed * lateralDecay;
 
   vx = forward.x * newForwardSpeed + right.x * newLateralSpeed;
@@ -331,6 +418,8 @@ function computeStep(
     vx,
     vy,
     yawRate,
+    lateralGrip: effectiveLateralGrip,
+    reverseHold,
   };
 
   return {

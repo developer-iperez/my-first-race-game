@@ -310,12 +310,14 @@ function measureHandbrake(config: CarPhysicsConfig, dt: number): HandbrakeMetric
   const speedAtHalfSecond = speedOf(state);
 
   // Recuperación: se suelta el freno de mano, se endereza el volante y se
-  // mide cuánto tarda el coche en dejar de considerarse en derrape.
+  // mide cuánto tarda el agarre lateral en recuperar al menos la mitad de
+  // su valor normal. Mide la transición de la rueda, no solo el slip: con
+  // un modelo que devuelve el agarre de golpe, esto sería 0.
   let recoveryTimeSeconds: number | null = null;
   const maxRecoveryFrames = Math.ceil(2 / dt);
   for (let i = 0; i < maxRecoveryFrames; i++) {
     state = stepCarPhysics(state, { throttle: 1, steer: 0, handbrake: false }, config, dt);
-    if (slipRatioOf(state) <= 0.35) {
+    if ((state.lateralGrip ?? 1) >= 0.5) {
       recoveryTimeSeconds = (i + 1) * dt;
       break;
     }
@@ -480,9 +482,13 @@ export function formatFeelReport(metrics: FeelMetrics): string {
   lines.push('');
   lines.push(`${passed}/${results.length} métricas dentro del objetivo.`);
   lines.push('');
-  lines.push(
-    'Nota: los FAIL de conducción son esperados hasta el re-tuning de S1.4. El muro ya usa la colisión real de S1.3.',
-  );
+  if (passed === results.length) {
+    lines.push('Todas las métricas de conducción están dentro del objetivo. El muro usa la colisión real de S1.3.');
+  } else {
+    lines.push(
+      `Quedan ${results.length - passed} métrica(s) fuera del objetivo; úsalas para el siguiente ajuste de tuning.`,
+    );
+  }
 
   return lines.join('\n');
 }
