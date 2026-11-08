@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: Sprint 1 completo y S2.1–S2.5 implementados. S2.6 (fantasma y rejugabilidad) es el siguiente.
+> Estado: Sprint 1 y Sprint 2 completos (S1.1–S1.8, S2.1–S2.6). Sprint 3 (arte y UI) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -569,7 +569,7 @@ sentido correcto.
 **Depende de:** S2.3, S2.4.
 **Esfuerzo:** S.
 
-### S2.6 — Fantasma, medallas y rejugabilidad
+### ✅ S2.6 — Fantasma, medallas y rejugabilidad
 
 **Objetivo:** dar una razón para repetir cada circuito.
 

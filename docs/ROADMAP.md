@@ -73,6 +73,7 @@ Que *conducir sea divertido* aunque no haya arte final.
   5 vueltas, muros, chicanes y zonas de arena
 - ✅ Checkpoints como puertas con anchura y dirección (anti-corte)
 - ✅ Resultados con tiempo total, pausa y reset a la última puerta con penalización
+- ✅ Fantasma de la mejor vuelta, récords por tuning y medallas por tiempo
 - ⬜ Publicado en itch.io
 
 ---

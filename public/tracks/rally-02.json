@@ -36,6 +36,21 @@
       "name": "theme",
       "type": "string",
       "value": "desert"
+    },
+    {
+      "name": "goldMs",
+      "type": "int",
+      "value": 90000
+    },
+    {
+      "name": "silverMs",
+      "type": "int",
+      "value": 110000
+    },
+    {
+      "name": "bronzeMs",
+      "type": "int",
+      "value": 140000
     }
   ],
   "tilesets": [

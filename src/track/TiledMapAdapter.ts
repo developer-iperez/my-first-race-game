@@ -16,6 +16,11 @@ function mapProperty(map: Phaser.Tilemaps.Tilemap, name: string): unknown {
   return prop.value;
 }
 
+function optionalMapProperty(map: Phaser.Tilemaps.Tilemap, name: string): number | undefined {
+  const prop = (map.properties as { name: string; value: unknown }[] | undefined)?.find((p) => p.name === name);
+  return typeof prop?.value === 'number' ? prop.value : undefined;
+}
+
 function requiredLayer(map: Phaser.Tilemaps.Tilemap, name: string): Phaser.Tilemaps.LayerData {
   const layer = map.getLayer(name);
   if (!layer) {
@@ -90,6 +95,14 @@ export function buildTrackData(map: Phaser.Tilemaps.Tilemap): unknown {
     throw new Error('Circuito Tiled inválido: falta el objeto "spawn" en el layer "waypoints"');
   }
 
+  const goldMs = optionalMapProperty(map, 'goldMs');
+  const silverMs = optionalMapProperty(map, 'silverMs');
+  const bronzeMs = optionalMapProperty(map, 'bronzeMs');
+  const medals =
+    goldMs !== undefined && silverMs !== undefined && bronzeMs !== undefined
+      ? { goldMs, silverMs, bronzeMs }
+      : undefined;
+
   return {
     schemaVersion: mapProperty(map, 'schemaVersion'),
     id: mapProperty(map, 'id'),
@@ -102,5 +115,6 @@ export function buildTrackData(map: Phaser.Tilemaps.Tilemap): unknown {
     waypoints,
     laps: mapProperty(map, 'laps'),
     theme: mapProperty(map, 'theme'),
+    ...(medals ? { medals } : {}),
   };
 }

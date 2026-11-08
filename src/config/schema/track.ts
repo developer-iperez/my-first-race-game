@@ -48,6 +48,14 @@ export const TrackSchema = z.object({
   waypoints: z.array(WaypointSchema).min(1),
   laps: z.number().int().positive(),
   theme: z.string().min(1),
+  /** Tiempos objetivo de carrera completa (opcional). */
+  medals: z
+    .object({
+      goldMs: z.number().positive(),
+      silverMs: z.number().positive(),
+      bronzeMs: z.number().positive(),
+    })
+    .optional(),
 });
 
 export type TrackDefinition = z.infer<typeof TrackSchema>;

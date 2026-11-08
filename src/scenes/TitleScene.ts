@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
 import { SettingsMenu } from '../settings/SettingsMenu';
 import { Settings } from '../settings/Settings';
+import { getTuningKey } from '../settings/carTuning';
 import { TRACK_CATALOG } from '../track/trackCatalog';
+import { BestLaps } from '../race/BestLaps';
+import { formatLapTime } from '../race/formatTime';
 
 interface TitleSceneData {
   carKey: string;
@@ -19,6 +22,7 @@ export class TitleScene extends Phaser.Scene {
   private settingsMenu!: SettingsMenu;
   private sceneData!: TitleSceneData;
   private trackLabel!: Phaser.GameObjects.Text;
+  private bestLabel!: Phaser.GameObjects.Text;
   private started = false;
   private unsubscribeSettings?: () => void;
 
@@ -55,6 +59,18 @@ export class TitleScene extends Phaser.Scene {
         strokeThickness: 3,
       })
       .setOrigin(0.5);
+
+    this.bestLabel = this.add
+      .text(width / 2, trackRowY + 18, '', {
+        fontFamily: 'monospace',
+        fontSize: '9px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setAlpha(0.85);
+
     this.refreshTrackLabel();
 
     const arrowStyle = {
@@ -165,6 +181,10 @@ export class TitleScene extends Phaser.Scene {
   private refreshTrackLabel(): void {
     const entry = TRACK_CATALOG.find((track) => track.key === Settings.get().trackKey) ?? TRACK_CATALOG[0];
     this.trackLabel.setText(entry.label);
+
+    const tuningKey = getTuningKey(Settings.get());
+    const best = BestLaps.get(entry.key, this.sceneData.carKey, tuningKey);
+    this.bestLabel.setText(best !== null ? `Récord: ${formatLapTime(best)}` : 'Récord: --:--.---');
   }
 
   private cycleTrack(direction: number): void {

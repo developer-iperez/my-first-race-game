@@ -13,6 +13,8 @@
   - `name` (string)
   - `laps` (int)
   - `theme` (string: `forest`, `desert`, `canyon`...)
+  - `goldMs`, `silverMs`, `bronzeMs` (int, opcionales): tiempos de medalla
+    para el total de la carrera; deben cumplir oro < plata < bronce.
 - Tileset: `rally-tiles`, imagen `tileset.png`, 4 tiles (asfalto, hierba,
   arena, muro).
 

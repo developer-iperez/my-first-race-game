@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { applyTuningToPhysics, CAR_TUNING_BOUNDS, DEFAULT_CAR_TUNING } from '../src/settings/carTuning';
+import {
+  applyTuningToPhysics,
+  CAR_TUNING_BOUNDS,
+  DEFAULT_CAR_TUNING,
+  getTuningKey,
+} from '../src/settings/carTuning';
 import type { CarPhysicsConfig } from '../src/config/schema/car';
 
 const basePhysics: CarPhysicsConfig = {
@@ -45,5 +50,12 @@ describe('applyTuningToPhysics', () => {
       expect(bounds.default).toBeGreaterThanOrEqual(bounds.min);
       expect(bounds.default).toBeLessThanOrEqual(bounds.max);
     }
+  });
+
+  it('genera una clave distinta para cada tuning', () => {
+    expect(getTuningKey(DEFAULT_CAR_TUNING)).toBe('s0.60-a0.60-g1.00');
+    expect(getTuningKey({ ...DEFAULT_CAR_TUNING, speedFactor: 0.85 })).not.toBe(
+      getTuningKey(DEFAULT_CAR_TUNING),
+    );
   });
 });

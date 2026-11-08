@@ -126,5 +126,7 @@ recuperar del historial de commits.
 - S2.4: pantalla de resultados con tiempo total, mejor vuelta y botones de
   reinicio/menú; pausa con P/Esc y menú de pausa (oculta los controles táctiles).
 - S2.5: R recoloca el coche en la última puerta con penalización de 3 s.
+- S2.6: fantasma de la mejor vuelta (20 Hz, localStorage), récords separados
+  por tuning, medallas por tiempo total y récord visible en el título.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

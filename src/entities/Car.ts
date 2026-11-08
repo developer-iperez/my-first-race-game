@@ -43,6 +43,8 @@ export class Car {
     this.sprite = scene.add.image(spawn.x, spawn.y, 'car-sprite');
     this.sprite.setDisplaySize(length, width);
     this.sprite.setRotation(spawn.angle);
+    // Por encima del fantasma (depth 1) y por debajo del HUD.
+    this.sprite.setDepth(2);
   }
 
   /** Sustituye las físicas efectivas (p. ej. tras aplicar la dificultad elegida). */

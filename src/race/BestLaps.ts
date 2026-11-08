@@ -2,8 +2,8 @@ const STORAGE_KEY = 'rally90s:bestLaps';
 
 type BestLapsMap = Record<string, number>;
 
-function recordKey(trackKey: string, carKey: string): string {
-  return `${trackKey}::${carKey}`;
+function recordKey(trackKey: string, carKey: string, tuningKey: string): string {
+  return `${trackKey}::${carKey}::${tuningKey}`;
 }
 
 function load(): BestLapsMap {
@@ -33,15 +33,15 @@ function save(map: BestLapsMap): void {
  * parte de la definición del vehículo o el trazado.
  */
 export class BestLaps {
-  static get(trackKey: string, carKey: string): number | null {
-    const value = load()[recordKey(trackKey, carKey)];
+  static get(trackKey: string, carKey: string, tuningKey = 'default'): number | null {
+    const value = load()[recordKey(trackKey, carKey, tuningKey)];
     return typeof value === 'number' ? value : null;
   }
 
   /** Guarda timeMs como récord solo si mejora (o no existe todavía) el guardado. */
-  static reportLap(trackKey: string, carKey: string, timeMs: number): void {
+  static reportLap(trackKey: string, carKey: string, timeMs: number, tuningKey = 'default'): void {
     const map = load();
-    const key = recordKey(trackKey, carKey);
+    const key = recordKey(trackKey, carKey, tuningKey);
     const current = map[key];
     if (typeof current !== 'number' || timeMs < current) {
       map[key] = timeMs;

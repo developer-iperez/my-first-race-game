@@ -63,6 +63,7 @@ function trackBosqueBravo() {
     name: 'Bosque Bravo',
     theme: 'forest',
     laps: 5,
+    medals: { goldMs: 100000, silverMs: 120000, bronzeMs: 150000 },
     grid,
     spawn: { x: 368, y: 80, angle: 0 },
     waypoints: [
@@ -93,6 +94,7 @@ function trackDunaVeloz() {
     name: 'Duna Veloz',
     theme: 'desert',
     laps: 5,
+    medals: { goldMs: 90000, silverMs: 110000, bronzeMs: 140000 },
     grid,
     spawn: { x: 368, y: 80, angle: 0 },
     waypoints: [
@@ -127,6 +129,7 @@ function trackSerpiente() {
     name: 'Serpiente',
     theme: 'canyon',
     laps: 5,
+    medals: { goldMs: 105000, silverMs: 125000, bronzeMs: 155000 },
     grid,
     spawn: { x: 368, y: 80, angle: 0 },
     waypoints: [
@@ -235,6 +238,9 @@ function buildMap(definition) {
       { name: 'name', type: 'string', value: definition.name },
       { name: 'laps', type: 'int', value: definition.laps },
       { name: 'theme', type: 'string', value: definition.theme },
+      { name: 'goldMs', type: 'int', value: definition.medals.goldMs },
+      { name: 'silverMs', type: 'int', value: definition.medals.silverMs },
+      { name: 'bronzeMs', type: 'int', value: definition.medals.bronzeMs },
     ],
     tilesets: [
       {

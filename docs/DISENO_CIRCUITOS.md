@@ -28,6 +28,14 @@ queda fuera de F3 y se evaluará en S3.4.
 | Duna Veloz | `desert` | Rápido, amplio | 5 | Infield de arena, isla central pequeña, arenas en curvas |
 | Serpiente | `canyon` | Ratonero, con muros | 5 | Chicanes alternadas, carril de 3 tiles en los puntos cerrados, tramo de arena |
 
+Medallas de tiempo total orientativas (se ajustan tras playtesting):
+
+| Circuito | Oro | Plata | Bronce |
+|---|---:|---:|---:|
+| Bosque Bravo | 100 s | 120 s | 150 s |
+| Duna Veloz | 90 s | 110 s | 140 s |
+| Serpiente | 105 s | 125 s | 155 s |
+
 ## Reglas de trazado
 
 - Muro exterior de 1 tile en todo el perímetro.

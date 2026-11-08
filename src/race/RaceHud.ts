@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { LapTrackerState } from './LapTracker';
 import { formatLapTime } from './formatTime';
 import { formatSignedDelta, getDriveDisplay } from './driveDisplay';
+import { formatMedal, type RaceMedal } from './medals';
 
 const PANEL_PADDING = 4;
 const PANEL_BG = 0x0a0a0a;
@@ -19,6 +20,7 @@ export interface DrivingHudState {
   isSkidding: boolean;
   /** Tiempo total de carrera (incluye vueltas ya completadas). */
   totalTimeMs: number;
+  medal: RaceMedal | null;
 }
 
 const EMPTY_DRIVING: DrivingHudState = {
@@ -26,6 +28,7 @@ const EMPTY_DRIVING: DrivingHudState = {
   maxSpeed: 1,
   isSkidding: false,
   totalTimeMs: 0,
+  medal: null,
 };
 
 /**
@@ -149,7 +152,7 @@ export class RaceHud {
       .setVisible(false);
 
     this.restartButton = scene.add
-      .text(scene.scale.width / 2, scene.scale.height / 2 + 30, '► VOLVER A EMPEZAR ◄', {
+      .text(scene.scale.width / 2, scene.scale.height / 2 + 44, '► VOLVER A EMPEZAR ◄', {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: '#000000',
@@ -164,7 +167,7 @@ export class RaceHud {
       .on('pointerdown', onRestart);
 
     this.menuButton = scene.add
-      .text(scene.scale.width / 2, scene.scale.height / 2 + 56, '⌂ MENÚ PRINCIPAL', {
+      .text(scene.scale.width / 2, scene.scale.height / 2 + 70, '⌂ MENÚ PRINCIPAL', {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: '#ffffff',
@@ -226,7 +229,7 @@ export class RaceHud {
 
     if (state.finished && !this.finishText.visible) {
       this.finishText.setText(
-        `\u{1F3C1} ¡META! \u{1F3C1}\nTiempo total: ${formatLapTime(driving.totalTimeMs)}\nMejor vuelta: ${best}`,
+        `\u{1F3C1} ¡META! \u{1F3C1}\nTiempo total: ${formatLapTime(driving.totalTimeMs)}\nMejor vuelta: ${best}\nMedalla: ${formatMedal(driving.medal)}`,
       );
       this.finishText.setVisible(true);
       drawPanel(this.finishPanel, this.finishText, 0xff3333);

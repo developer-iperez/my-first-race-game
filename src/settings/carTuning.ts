@@ -45,6 +45,15 @@ export const DEFAULT_CAR_TUNING: CarTuning = {
   gripFactor: CAR_TUNING_BOUNDS.gripFactor.default,
 };
 
+/**
+ * Clave estable para separar récords y fantasmas por configuración de
+ * conducción. Sin esto, una vuelta con el coche al 30% de velocidad se
+ * comparaba contra una al 85%, que no es una comparación justa.
+ */
+export function getTuningKey(tuning: CarTuning): string {
+  return `s${tuning.speedFactor.toFixed(2)}-a${tuning.accelFactor.toFixed(2)}-g${tuning.gripFactor.toFixed(2)}`;
+}
+
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
 
 /**

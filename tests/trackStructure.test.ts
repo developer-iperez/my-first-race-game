@@ -149,4 +149,14 @@ describe.each(Object.entries(tracks))('%s — estructura de contenido', (_name, 
     expect(Number(mapProperty(track, 'laps'))).toBeGreaterThanOrEqual(1);
     expect(typeof mapProperty(track, 'theme')).toBe('string');
   });
+
+  it('si define medallas, están ordenadas de oro a bronce', () => {
+    const gold = Number(mapProperty(track, 'goldMs'));
+    const silver = Number(mapProperty(track, 'silverMs'));
+    const bronze = Number(mapProperty(track, 'bronzeMs'));
+
+    expect(gold).toBeGreaterThan(0);
+    expect(silver).toBeGreaterThan(gold);
+    expect(bronze).toBeGreaterThan(silver);
+  });
 });

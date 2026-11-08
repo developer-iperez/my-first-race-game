@@ -8,8 +8,12 @@ import { TouchControls } from '../input/TouchControls';
 import { InputManager, type GamepadLike } from '../input/InputManager';
 import { SettingsMenu } from '../settings/SettingsMenu';
 import { Settings } from '../settings/Settings';
-import { applyTuningToPhysics } from '../settings/carTuning';
+import { applyTuningToPhysics, getTuningKey } from '../settings/carTuning';
 import { BestLaps } from '../race/BestLaps';
+import { GhostRecorder } from '../race/GhostRecorder';
+import { GhostPlayer } from '../race/GhostPlayer';
+import { GhostStore } from '../race/GhostStore';
+import { getMedal } from '../race/medals';
 import { LapTracker } from '../race/LapTracker';
 import { RaceHud, type DrivingHudState } from '../race/RaceHud';
 import { PauseMenu } from '../race/PauseMenu';
@@ -54,6 +58,9 @@ export class RaceScene extends Phaser.Scene {
   private unsubscribeSettings?: () => void;
   private lapTracker!: LapTracker;
   private hud!: RaceHud;
+  private ghostRecorder!: GhostRecorder;
+  private ghostPlayer!: GhostPlayer;
+  private tuningKey = '';
   private pauseMenu!: PauseMenu;
   private pauseKey!: Phaser.Input.Keyboard.Key;
   private escapeKey!: Phaser.Input.Keyboard.Key;
@@ -124,7 +131,8 @@ export class RaceScene extends Phaser.Scene {
     // La mejor vuelta se siembra desde localStorage (BestLaps, por
     // circuito+coche) para que "🏆 mejor vuelta" muestre el récord de
     // siempre desde el primer frame, no solo el de esta sesión.
-    const savedBestLapMs = BestLaps.get(data.trackKey, data.carKey);
+    this.tuningKey = getTuningKey(Settings.get());
+    const savedBestLapMs = BestLaps.get(data.trackKey, data.carKey, this.tuningKey);
     this.lapTracker = new LapTracker(
       this.track.waypoints,
       this.track.laps,
@@ -137,6 +145,16 @@ export class RaceScene extends Phaser.Scene {
       () => this.exitToMenu(),
     );
     this.nextTargetIndicator = new NextTargetIndicator(this);
+
+    this.ghostRecorder = new GhostRecorder();
+    this.ghostRecorder.reset(0);
+    this.ghostPlayer = new GhostPlayer(
+      this,
+      this.carDefinition.physics.length,
+      this.carDefinition.physics.width,
+    );
+    this.ghostPlayer.setGhost(GhostStore.get(data.trackKey, data.carKey, this.tuningKey));
+
     this.audio = new RaceAudio(this);
     this.skidParticles = new SkidParticles(this);
     this.telemetryHud = new DriveTelemetryHud(this);
@@ -192,6 +210,7 @@ export class RaceScene extends Phaser.Scene {
       this.settingsMenu.destroy();
       this.pauseMenu.destroy();
       this.nextTargetIndicator.destroy();
+      this.ghostPlayer.destroy();
       this.countdown.destroy();
       this.skidParticles.destroy();
       this.telemetryHud.destroy();
@@ -278,17 +297,20 @@ export class RaceScene extends Phaser.Scene {
       reverseHold: 0,
     });
     this.lapTracker.resetPreviousPosition(target.x, target.y);
+    this.ghostRecorder.discard();
     this.raceElapsedMs += RESET_PENALTY_MS;
     this.fixedStep.reset();
     this.hud.flashMessage('RESET +3 s');
   }
 
   private getDrivingHudState(): DrivingHudState {
+    const finished = this.lapTracker.getState().finished;
     return {
       speed: Math.hypot(this.car.state.vx, this.car.state.vy),
       maxSpeed: this.car.maxSpeed,
       isSkidding: this.car.isSkidding,
       totalTimeMs: this.raceElapsedMs,
+      medal: finished ? getMedal(this.raceElapsedMs, this.track.medals) : null,
     };
   }
 
@@ -356,6 +378,7 @@ export class RaceScene extends Phaser.Scene {
     if (this.countdown.update(frameDeltaSeconds * 1000)) {
       const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
       this.nextTargetIndicator.update(nextTarget, time);
+      this.ghostPlayer.hide();
       this.hud.update(this.lapTracker.getState(), 0, this.getDrivingHudState());
       return;
     }
@@ -371,6 +394,7 @@ export class RaceScene extends Phaser.Scene {
       // Carrera terminada: el coche se congela donde esté (no se procesa
       // más física ni entrada) y se oculta el indicador de objetivo.
       this.nextTargetIndicator.hide();
+      this.ghostPlayer.hide();
       this.skidParticles.update(
         this.car.state.x,
         this.car.state.y,
@@ -415,6 +439,13 @@ export class RaceScene extends Phaser.Scene {
           if (collision.impact) this.handleImpact(collision.impact);
         }
 
+        this.ghostRecorder.record(
+          this.raceElapsedMs,
+          this.car.state.x,
+          this.car.state.y,
+          this.car.state.angle,
+        );
+
         // La cámara es fija y encuadra el circuito completo sin scroll (F3):
         // sin este límite, un derrape fuerte hacia el borde podría sacar el
         // coche fuera del área visible y "perderlo" de la pantalla. Se trata
@@ -456,12 +487,45 @@ export class RaceScene extends Phaser.Scene {
         this.audio.playCheckpoint();
       }
       const lapState = this.lapTracker.getState();
-      if (lapState.lastLapMs !== previousLastLapMs && lapState.bestLapMs !== null) {
-        // Se acaba de completar una vuelta: si es la mejor conseguida hasta
-        // ahora (esta sesión o guardada de antes), persistirla entre
-        // sesiones. reportLap ya comprueba internamente si mejora lo
-        // guardado, así que es seguro llamarlo siempre que se cierra vuelta.
-        BestLaps.reportLap(this.sceneData.trackKey, this.sceneData.carKey, lapState.bestLapMs);
+      if (lapState.lastLapMs !== previousLastLapMs) {
+        // Se acaba de completar una vuelta: forzar la muestra final antes de
+        // decidir si el fantasma de esta vuelta merece guardarse.
+        this.ghostRecorder.forceSample(
+          this.raceElapsedMs,
+          this.car.state.x,
+          this.car.state.y,
+          this.car.state.angle,
+        );
+
+        const lastLapMs = lapState.lastLapMs;
+        const isNewBest =
+          lastLapMs !== null && lapState.bestLapMs !== null && lastLapMs <= lapState.bestLapMs;
+        if (lastLapMs !== null && isNewBest && this.ghostRecorder.isValid) {
+          const ghost = {
+            version: 1 as const,
+            lapMs: lastLapMs,
+            frames: this.ghostRecorder.getSamples(),
+          };
+          GhostStore.save(
+            this.sceneData.trackKey,
+            this.sceneData.carKey,
+            this.tuningKey,
+            ghost,
+          );
+          this.ghostPlayer.setGhost(ghost);
+        }
+
+        if (lapState.bestLapMs !== null) {
+          // reportLap ya comprueba internamente si mejora lo guardado, así
+          // que es seguro llamarlo siempre que se cierra vuelta.
+          BestLaps.reportLap(
+            this.sceneData.trackKey,
+            this.sceneData.carKey,
+            lapState.bestLapMs,
+            this.tuningKey,
+          );
+        }
+        this.ghostRecorder.reset(this.raceElapsedMs);
       }
       if (lapState.finished) {
         this.audio.playFinish();
@@ -475,6 +539,10 @@ export class RaceScene extends Phaser.Scene {
         this.car.state.angle,
         this.car.isSkidding,
         this.car.surfaceKey,
+      );
+      this.ghostPlayer.update(
+        this.raceElapsedMs - this.lapTracker.currentLapStartMs,
+        lapState.finished,
       );
 
       if (lapState.finished) {
