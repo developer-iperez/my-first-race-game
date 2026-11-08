@@ -52,6 +52,8 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Paso de física fijo (120 Hz) con clamp de delta y pausa al perder foco
 - ✅ Simulador de métricas de feel (`npm run feel`) para tunear con objetivos
   medibles (ver `docs/AUDITORIA.md`)
+- ✅ Colisión real del coche contra muros (cápsula + sweep), con polvo y sonido
+  de impacto
 
 ## v1.0 — Primera versión completa 🟨
 - ✅ Pantalla de inicio (título + "pulsa para empezar", con ajustes de

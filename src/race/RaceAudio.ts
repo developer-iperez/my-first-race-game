@@ -10,6 +10,7 @@ export class RaceAudio {
   private readonly engine: Phaser.Sound.WebAudioSound;
   private readonly skid: Phaser.Sound.WebAudioSound;
   private readonly checkpoint: Phaser.Sound.WebAudioSound;
+  private readonly impact: Phaser.Sound.WebAudioSound;
   private readonly finish: Phaser.Sound.WebAudioSound;
   private wasSkidding = false;
 
@@ -17,6 +18,7 @@ export class RaceAudio {
     this.engine = scene.sound.add('sfx-engine') as Phaser.Sound.WebAudioSound;
     this.skid = scene.sound.add('sfx-skid') as Phaser.Sound.WebAudioSound;
     this.checkpoint = scene.sound.add('sfx-checkpoint') as Phaser.Sound.WebAudioSound;
+    this.impact = scene.sound.add('sfx-impact') as Phaser.Sound.WebAudioSound;
     this.finish = scene.sound.add('sfx-finish') as Phaser.Sound.WebAudioSound;
 
     this.engine.play({ loop: true, volume: 0.1 });
@@ -38,6 +40,12 @@ export class RaceAudio {
 
   playCheckpoint(): void {
     this.checkpoint.play({ volume: 0.6 });
+  }
+
+  /** Golpe contra un muro; el volumen crece con la velocidad normal del impacto. */
+  playImpact(speed: number): void {
+    const intensity = Phaser.Math.Clamp(speed / 300, 0, 1);
+    this.impact.play({ volume: 0.2 + intensity * 0.55, rate: 1 - intensity * 0.15 });
   }
 
   /**
@@ -67,6 +75,7 @@ export class RaceAudio {
     this.engine.destroy();
     this.skid.destroy();
     this.checkpoint.destroy();
+    this.impact.destroy();
     this.finish.destroy();
   }
 }

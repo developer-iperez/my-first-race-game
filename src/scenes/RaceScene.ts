@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TrackLoader } from '../track/TrackLoader';
 import { renderTrack } from '../track/TrackRenderer';
-import { getSurfaceDragAt, getSurfaceGripAt, isWallAt } from '../track/TrackQuery';
+import { getSurfaceDragAt, getSurfaceGripAt } from '../track/TrackQuery';
 import { CarLoader } from '../entities/CarLoader';
 import { Car } from '../entities/Car';
 import { TouchControls } from '../input/TouchControls';
@@ -18,6 +18,7 @@ import { SkidParticles } from '../race/SkidParticles';
 import { DriveTelemetryHud } from '../race/DriveTelemetryHud';
 import type { CarDefinition } from '../config/schema/car';
 import { frameRateIndependentDecay, type CarInput } from '../physics/carPhysics';
+import { resolveCarCollision, type CarCollisionImpact } from '../physics/carCollision';
 import { DEFAULT_MAX_FRAME_DELTA_SECONDS, FixedStepLoop } from '../physics/fixedStep';
 import type { TrackDefinition } from '../config/schema/track';
 
@@ -27,11 +28,12 @@ interface RaceSceneData {
 }
 
 /**
- * Fricción fuerte al salirse de pista (muro/fuera de mapa): NO paramos en
- * seco ni rebotamos — el coche sigue moviéndose, solo que cuesta mucho
- * mantener velocidad, así es fácil corregir y volver al trazado sin sentir
- * un choque. Retención por frame a 60fps: con 0.9, en ~0.2s se pierde
- * la mayoría de la velocidad.
+ * Fricción al tocar el borde del mapa (fuera de cámara): el coche no debe
+ * desaparecer ni seguir deslizando contra el límite de la pantalla. Los
+ * muros de los tiles ya se resuelven por colisión real en `carCollision.ts`;
+ * esto solo queda para el recorte de los bordes del mapa.
+ * Retención por frame a 60fps: con 0.9, en ~0.2s se pierde la mayoría de la
+ * velocidad.
  */
 const OFFTRACK_GRIP_RETENTION = 0.9;
 
@@ -203,6 +205,11 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
+  private handleImpact(impact: CarCollisionImpact): void {
+    this.audio.playImpact(impact.speed);
+    this.skidParticles.emitImpact(impact.x, impact.y, impact.speed);
+  }
+
   /** Reinicia la carrera desde cero: mismo circuito y coche, todo el estado limpio. */
   private restartRace(): void {
     this.scene.restart(this.sceneData);
@@ -268,17 +275,18 @@ export class RaceScene extends Phaser.Scene {
         const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
         const surfaceDrag = getSurfaceDragAt(this.track, this.car.state.x, this.car.state.y);
 
+        const previousCarState = this.car.state;
         this.car.update(dt, input, surfaceGrip, surfaceDrag);
 
-        // Colisión legacy (S1.3 la sustituye por colisión real): de momento
-        // solo frena al coche dentro de un muro, sin corregir posición.
-        if (isWallAt(this.track, this.car.state.x, this.car.state.y)) {
-          const offtrackDecay = frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt);
-          this.car.setState({
-            ...this.car.state,
-            vx: this.car.state.vx * offtrackDecay,
-            vy: this.car.state.vy * offtrackDecay,
-          });
+        const collision = resolveCarCollision(
+          previousCarState,
+          this.car.state,
+          this.track,
+          this.carDefinition.physics,
+        );
+        if (collision.collided) {
+          this.car.setState(collision.state);
+          if (collision.impact) this.handleImpact(collision.impact);
         }
 
         // La cámara es fija y encuadra el circuito completo sin scroll (F3):

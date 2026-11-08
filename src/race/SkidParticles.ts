@@ -33,6 +33,12 @@ export class SkidParticles {
     }
   }
 
+  /** Golpe contra un muro: una ráfaga corta de polvo en el punto de impacto. */
+  emitImpact(x: number, y: number, speed: number): void {
+    const count = Math.min(12, Math.max(3, Math.round(speed / 35)));
+    this.emitter.explode(count, x, y);
+  }
+
   destroy(): void {
     this.emitter.destroy();
   }

@@ -5,6 +5,8 @@
   (CC0 — dominio público, sin atribución obligatoria; se cita aquí como
   cortesía). Recortado/rotado 90° para que la nariz mire a +x, sin más
   cambios de color.
+- **Impacto** (`public/audio/impact.wav`): generado por script (seno grave
+  con envolvente + ruido), sin assets externos.
 - **Tiles de pista** (`public/tiles/asphalt.png`, `grass.png`, `sand.png`,
   `wall.png`, y el atlas `tileset.png` que consume el tileset de Tiled):
   variantes planas del Racing Pack de Kenney (`road_asphalt14.png`,

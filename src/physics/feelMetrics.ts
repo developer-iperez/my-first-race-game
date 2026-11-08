@@ -1,10 +1,7 @@
 import type { CarPhysicsConfig } from '../config/schema/car';
-import {
-  frameRateIndependentDecay,
-  stepCarPhysics,
-  type CarInput,
-  type CarState,
-} from './carPhysics';
+import type { TrackDefinition } from '../config/schema/track';
+import { stepCarPhysics, type CarInput, type CarState } from './carPhysics';
+import { resolveCarCollision } from './carCollision';
 
 /**
  * Métricas objetivas de "feel" para tunear la conducción sin depender solo de
@@ -60,7 +57,7 @@ export interface HandbrakeMetrics {
 }
 
 export interface WallMetrics {
-  /** `true` si el coche atraviesa un muro de 128 px con gas (bug actual). */
+  /** `true` si el coche consigue atravesar un muro de 128 px con gas. */
   crossed: boolean;
   timeSeconds: number | null;
 }
@@ -108,9 +105,10 @@ export const FEEL_TARGETS: NumericTarget[] = [
 
 const DEFAULT_HZ = 60;
 const MAX_SIM_SECONDS = 15;
-const LEGACY_WALL_RETENTION = 0.9;
-const WALL_START_X = 0;
-const WALL_END_X = 128;
+const WALL_TILE_SIZE = 32;
+const WALL_START_COLUMN = 5;
+const WALL_END_COLUMN = 9; // 4 columnas = 128 px de grosor
+const WALL_END_X = WALL_END_COLUMN * WALL_TILE_SIZE;
 
 function stillState(): CarState {
   return { x: 0, y: 0, angle: 0, vx: 0, vy: 0, yawRate: 0 };
@@ -327,26 +325,49 @@ function measureHandbrake(config: CarPhysicsConfig, dt: number): HandbrakeMetric
 }
 
 /**
- * Reproduce la resolución legacy de RaceScene (retención 0,9 por frame dentro
- * de un muro) para dejar constancia del bug actual. S1.3 la sustituirá por
- * colisión real y esta métrica pasará a ser "no atravesable".
+ * Circuito sintético para medir la colisión: 10×10 tiles y un muro de 4
+ * columnas (128 px) en mitad del recorrido. No depende de los circuitos del
+ * juego, así la métrica sigue siendo válida aunque cambie el contenido.
  */
-function measureLegacyWall(config: CarPhysicsConfig, dt: number): WallMetrics {
-  let state: CarState = { x: -50, y: 0, angle: 0, vx: config.maxSpeed, vy: 0, yawRate: 0 };
-  let enteredWall = false;
+function collisionTestTrack(): TrackDefinition {
+  const width = 10;
+  const height = 10;
+  const walls = Array.from({ length: height }, () =>
+    Array.from({ length: width }, (_, col) => (col >= WALL_START_COLUMN && col < WALL_END_COLUMN ? 1 : 0)),
+  );
+  const surface = Array.from({ length: height }, () => Array.from({ length: width }, () => 'asphalt'));
+
+  return {
+    schemaVersion: 1,
+    id: 'feel-collision',
+    name: 'Feel Collision',
+    size: { width: width * WALL_TILE_SIZE, height: height * WALL_TILE_SIZE },
+    tileSize: WALL_TILE_SIZE,
+    surfaces: { asphalt: { grip: 1, drag: 1 } },
+    layers: { surface, walls },
+    spawn: { x: 100, y: 176, angle: 0 },
+    waypoints: [{ x: 100, y: 176, type: 'start_finish' }],
+    laps: 1,
+    theme: 'test',
+  };
+}
+
+function measureWall(config: CarPhysicsConfig, dt: number): WallMetrics {
+  const track = collisionTestTrack();
+  let state: CarState = { x: 100, y: 176, angle: 0, vx: config.maxSpeed, vy: 0, yawRate: 0 };
   let elapsed = 0;
   const maxFrames = Math.ceil(MAX_SIM_SECONDS / dt);
 
   for (let i = 0; i < maxFrames; i++) {
+    const previous = state;
     state = stepCarPhysics(state, { throttle: 1, steer: 0, handbrake: false }, config, dt);
+    state = resolveCarCollision(previous, state, track, {
+      length: config.length,
+      width: config.width,
+    }).state;
     elapsed += dt;
 
-    if (state.x >= WALL_START_X) enteredWall = true;
-    if (enteredWall && state.x <= WALL_END_X) {
-      const decay = frameRateIndependentDecay(LEGACY_WALL_RETENTION, dt);
-      state = { ...state, vx: state.vx * decay, vy: state.vy * decay };
-    }
-
+    // El centro del coche no debería pasar nunca del final del muro.
     if (state.x > WALL_END_X) {
       return { crossed: true, timeSeconds: elapsed };
     }
@@ -369,7 +390,7 @@ export function measureFeel(config: CarPhysicsConfig, options: FeelOptions = {})
     turning: measureTurning(config, dt),
     drift: measureDrift(config, dt),
     handbrake: measureHandbrake(config, dt),
-    wall: measureLegacyWall(config, dt),
+    wall: measureWall(config, dt),
   };
 }
 
@@ -460,7 +481,7 @@ export function formatFeelReport(metrics: FeelMetrics): string {
   lines.push(`${passed}/${results.length} métricas dentro del objetivo.`);
   lines.push('');
   lines.push(
-    'Nota: los FAIL son esperados hasta el re-tuning de S1.4. El muro se mide con la resolución legacy de RaceScene; S1.3 la sustituye.',
+    'Nota: los FAIL de conducción son esperados hasta el re-tuning de S1.4. El muro ya usa la colisión real de S1.3.',
   );
 
   return lines.join('\n');

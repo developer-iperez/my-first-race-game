@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: S1.1 y S1.2 implementados. S1.3 (colisión sólida) es el siguiente.
+> Estado: S1.1, S1.2 y S1.3 implementados. S1.4 (re-tuning) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -220,7 +220,7 @@ atraviesen muros tras un tirón de framerate.
 **Depende de:** nada.
 **Esfuerzo:** M.
 
-### S1.3 — Colisión sólida del coche
+### ✅ S1.3 — Colisión sólida del coche
 
 **Objetivo:** que los muros sean muros, no arenas movedizas.
 
@@ -228,21 +228,18 @@ atraviesen muros tras un tirón de framerate.
 - `src/physics/carCollision.ts`: cápsula de 3 círculos, sweep contra tiles,
   resolución de contacto, deslizamiento y eventos.
 - `src/track/TrackQuery.ts`: helper para obtener tiles de muro en un AABB.
-- `src/entities/Car.ts`: aplicar la resolución de colisión y actualizar el
-  sprite.
-- `src/scenes/RaceScene.ts`: consumir eventos de impacto, polvo y sonido.
+- `src/scenes/RaceScene.ts`: integrar la resolución y consumir eventos de
+  impacto, polvo y sonido.
 - Tests: `tests/carCollision.test.ts`.
 
 **Detalle:**
-- Cápsula: centros en `±wheelbaseOffset` y `0`, radio `physics.width / 2`.
+- Cápsula: centros a `±(length/2 - width/2)` y `0`, radio `physics.width / 2`.
 - Sweep de cada círculo contra AABB de tiles; elegir el impacto más temprano.
 - Resolver posición, proyectar velocidad sobre la normal, aplicar restitución
-  baja (0,1–0,2) y fricción tangencial.
-- Iterar 2–3 contactos para esquinas.
-- Guardar última posición segura cada 0,5 s fuera de muro.
-- Si el coche lleva >1 s atascado, ofrecer reset o recolocarlo en la última
-  posición segura.
+  baja (0,12) y conservar la componente tangencial.
+- Iterar hasta 5 contactos para esquinas.
 - Evento `{ normal, impactSpeed, point }` para audio/partículas.
+- El reset a la última puerta/posición segura se implementa en S2.5.
 
 **Criterios de aceptación:**
 - [ ] A velocidad máxima no se atraviesa un muro de 32 px ni uno de 128 px.

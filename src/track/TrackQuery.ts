@@ -41,3 +41,49 @@ export function isWallAt(track: TrackDefinition, x: number, y: number): boolean 
   if (!inBounds(track, col, row)) return true;
   return track.layers.walls[row][col] === 1;
 }
+
+/** Rectángulo en píxeles de mundo de un tile de muro. */
+export interface WallTileRect {
+  col: number;
+  row: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Devuelve los tiles de muro que solapan un AABB de mundo. Es la consulta que
+ * usa la colisión del coche para no recorrer la rejilla entera en cada paso.
+ */
+export function getWallTileRectsInAabb(
+  track: TrackDefinition,
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number,
+): WallTileRect[] {
+  const firstCol = Math.max(0, Math.floor(minX / track.tileSize));
+  const lastCol = Math.min(track.layers.surface[0]?.length ?? 0, Math.ceil(maxX / track.tileSize));
+  const firstRow = Math.max(0, Math.floor(minY / track.tileSize));
+  const lastRow = Math.min(track.layers.surface.length, Math.ceil(maxY / track.tileSize));
+  const result: WallTileRect[] = [];
+
+  for (let row = firstRow; row < lastRow; row++) {
+    const wallRow = track.layers.walls[row];
+    if (!wallRow) continue;
+    for (let col = firstCol; col < lastCol; col++) {
+      if (wallRow[col] !== 1) continue;
+      result.push({
+        col,
+        row,
+        x: col * track.tileSize,
+        y: row * track.tileSize,
+        width: track.tileSize,
+        height: track.tileSize,
+      });
+    }
+  }
+
+  return result;
+}

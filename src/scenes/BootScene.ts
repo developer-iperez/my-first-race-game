@@ -37,6 +37,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('sfx-engine', 'audio/engine.wav');
     this.load.audio('sfx-skid', 'audio/skid.wav');
     this.load.audio('sfx-checkpoint', 'audio/checkpoint.wav');
+    this.load.audio('sfx-impact', 'audio/impact.wav');
     this.load.audio('sfx-finish', 'audio/finish.wav');
   }
 

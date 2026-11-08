@@ -100,5 +100,8 @@ recuperar del historial de commits.
   la auditoría; baseline actual 0/10 (los FAIL guían el re-tuning de S1.4).
 - S1.2: bucle de física a paso fijo (120 Hz) con clamp de delta y pausa real
   al perder foco/visibilidad; evita túneles y saltos tras un freeze.
+- S1.3: colisión real del coche (cápsula de 3 círculos + sweep) contra muros;
+  la isla de Bosque Bravo ya no se atraviesa. Impacto con polvo y sonido.
+  La métrica del muro pasa a PASS; el resto sigue pendiente de S1.4.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.
