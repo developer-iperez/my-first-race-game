@@ -132,5 +132,9 @@ recuperar del historial de commits.
   física y huella de colisión adaptadas al nuevo tamaño.
 - S3.2 (base): tileset pixel art con asfalto/hierba/arena/muro, decoración de
   árboles/rocas/arbustos y marcas de derrape en pista.
+- S3.5: controles táctiles reubicados (freno de mano a la derecha, safe areas),
+  botón de pausa táctil y ocultación en escritorio.
+- S3.6: presets Arcade/Rally/Simulación, descripción en el menú y restaurar
+  conducción; los sliders avanzados marcan el estilo como "Personalizado".
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

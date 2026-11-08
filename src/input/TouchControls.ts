@@ -23,10 +23,11 @@ export class TouchControls {
 
   private readonly root: HTMLDivElement;
 
-  constructor(parent: HTMLElement) {
+  constructor(parent: HTMLElement, onPause?: () => void) {
     this.root = document.createElement('div');
     this.root.className = 'touch-controls';
     this.root.innerHTML = `
+      <button type="button" class="touch-btn touch-btn--pause" data-pause aria-label="Pausa">Ⅱ</button>
       <div class="touch-controls__cluster touch-controls__cluster--steer">
         <button type="button" class="touch-btn" data-action="left" aria-label="Girar izquierda">◀</button>
         <button type="button" class="touch-btn" data-action="right" aria-label="Girar derecha">▶</button>
@@ -38,6 +39,14 @@ export class TouchControls {
       </div>
     `;
     parent.appendChild(this.root);
+
+    const pauseButton = this.root.querySelector<HTMLButtonElement>('[data-pause]');
+    if (pauseButton && onPause) {
+      pauseButton.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        onPause();
+      });
+    }
 
     this.root.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((button) => {
       const action = button.dataset.action as keyof TouchInputState;

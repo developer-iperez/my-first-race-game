@@ -1,5 +1,11 @@
 import { Settings, type GameSettings } from './Settings';
-import { CAR_TUNING_BOUNDS, type CarTuning } from './carTuning';
+import {
+  CAR_TUNING_BOUNDS,
+  DEFAULT_CAR_TUNING,
+  findPresetForTuning,
+  TUNING_PRESETS,
+  type CarTuning,
+} from './carTuning';
 import { isFullscreenActive, isFullscreenSupported, toggleFullscreen } from './Fullscreen';
 
 function formatTuningValue(value: number): string {
@@ -29,6 +35,8 @@ export class SettingsMenu {
 
   private readonly sliderInputs = {} as Record<keyof CarTuning, HTMLInputElement>;
   private readonly sliderValueTexts = {} as Record<keyof CarTuning, HTMLSpanElement>;
+  private readonly presetButtons = new Map<string, HTMLButtonElement>();
+  private presetDescription?: HTMLDivElement;
   private soundButton?: HTMLButtonElement;
   private fullscreenButton?: HTMLButtonElement;
   private telemetryButton?: HTMLButtonElement;
@@ -110,9 +118,12 @@ export class SettingsMenu {
     header.append(title, closeBtn);
     this.panel.appendChild(header);
 
+    this.panel.appendChild(this.buildPresetRow());
+
     for (const key of Object.keys(CAR_TUNING_BOUNDS) as (keyof CarTuning)[]) {
       this.panel.appendChild(this.buildTuningSliderRow(key));
     }
+    this.panel.appendChild(this.buildResetRow());
     this.panel.appendChild(this.buildSoundRow());
     if (isFullscreenSupported()) {
       this.panel.appendChild(this.buildFullscreenRow());
@@ -130,6 +141,16 @@ export class SettingsMenu {
   private refresh(): void {
     const settings = Settings.get();
 
+    const activePreset = findPresetForTuning(settings);
+    for (const [id, button] of this.presetButtons) {
+      button.classList.toggle('is-selected', activePreset?.id === id);
+    }
+    if (this.presetDescription) {
+      this.presetDescription.textContent = activePreset
+        ? activePreset.description
+        : 'Personalizado: mezcla libre de velocidad, aceleración y agarre.';
+    }
+
     for (const key of Object.keys(CAR_TUNING_BOUNDS) as (keyof CarTuning)[]) {
       this.sliderInputs[key].value = String(settings[key]);
       this.sliderValueTexts[key].textContent = formatTuningValue(settings[key]);
@@ -146,6 +167,54 @@ export class SettingsMenu {
         ? 'Telemetría conducción: ON 📊'
         : 'Telemetría conducción: off';
     }
+  }
+
+  private buildPresetRow(): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+
+    const label = document.createElement('div');
+    label.className = 'settings-row__label';
+    label.textContent = 'Estilo de conducción';
+    row.appendChild(label);
+
+    const options = document.createElement('div');
+    options.className = 'settings-row__options';
+    for (const preset of TUNING_PRESETS) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'settings-option';
+      button.textContent = preset.label;
+      button.addEventListener('click', () => {
+        Settings.update({ tuningPreset: preset.id, ...preset.tuning });
+      });
+      options.appendChild(button);
+      this.presetButtons.set(preset.id, button);
+    }
+    row.appendChild(options);
+
+    this.presetDescription = document.createElement('div');
+    this.presetDescription.className = 'settings-row__label';
+    this.presetDescription.style.marginTop = '8px';
+    row.appendChild(this.presetDescription);
+
+    return row;
+  }
+
+  private buildResetRow(): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'settings-option settings-option--wide';
+    button.textContent = '↺ Restaurar conducción';
+    button.addEventListener('click', () => {
+      Settings.update({ tuningPreset: 'arcade', ...DEFAULT_CAR_TUNING });
+    });
+    row.appendChild(button);
+
+    return row;
   }
 
   private buildSoundRow(): HTMLElement {
@@ -258,7 +327,7 @@ export class SettingsMenu {
     // que el resto de ajustes reactivos del juego. refresh() ya se encarga de
     // reflejar el valor final tras el Settings.update() que dispara esto.
     slider.addEventListener('input', () => {
-      Settings.update({ [key]: Number(slider.value) } as Partial<GameSettings>);
+      Settings.update({ [key]: Number(slider.value), tuningPreset: 'custom' } as Partial<GameSettings>);
     });
     row.appendChild(slider);
     this.sliderInputs[key] = slider;

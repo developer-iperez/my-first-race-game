@@ -76,6 +76,8 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Fantasma de la mejor vuelta, récords por tuning y medallas por tiempo
 - ✅ Coche pixel art 64×32 y tileset con textura/decoración
 - ✅ Marcas de derrape persistentes en pista
+- ✅ Controles táctiles reubicados, pausa táctil y safe areas
+- ✅ Presets de conducción Arcade/Rally/Simulación
 - ⬜ Publicado en itch.io
 
 ---

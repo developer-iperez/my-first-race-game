@@ -187,7 +187,7 @@ export class RaceScene extends Phaser.Scene {
     // Controles táctiles: para tablet/móvil sin teclado físico. Se montan
     // como DOM aparte de Phaser (multi-touch real) y se combinan con el
     // teclado en readInput(), así que ambos funcionan a la vez.
-    this.touchControls = new TouchControls(document.body);
+    this.touchControls = new TouchControls(document.body, () => this.setManualPaused(true));
     this.settingsMenu = new SettingsMenu(document.body, () => this.exitToMenu());
     this.applySound();
     this.unsubscribeSettings = Settings.onChange(() => {

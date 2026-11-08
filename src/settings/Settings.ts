@@ -1,7 +1,8 @@
-import { DEFAULT_CAR_TUNING, type CarTuning } from './carTuning';
+import { DEFAULT_CAR_TUNING, type CarTuning, type TuningPresetId } from './carTuning';
 import { TRACK_CATALOG } from '../track/trackCatalog';
 
 export interface GameSettings extends CarTuning {
+  tuningPreset: TuningPresetId;
   soundEnabled: boolean;
   trackKey: string;
   /** Muestra en pantalla el HUD de telemetría de conducción (velocidad, % derrape, agarre...). Apagado por defecto: es una herramienta de ajuste, no algo que un jugador normal necesite ver siempre. */
@@ -14,6 +15,7 @@ export interface GameSettings extends CarTuning {
 const STORAGE_KEY = 'rally90s:settings';
 
 const DEFAULTS: GameSettings = {
+  tuningPreset: 'arcade',
   ...DEFAULT_CAR_TUNING,
   soundEnabled: true,
   trackKey: TRACK_CATALOG[0].key,

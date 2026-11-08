@@ -3,7 +3,10 @@ import {
   applyTuningToPhysics,
   CAR_TUNING_BOUNDS,
   DEFAULT_CAR_TUNING,
+  findPresetForTuning,
   getTuningKey,
+  TUNING_PRESETS,
+  type CarTuning,
 } from '../src/settings/carTuning';
 import type { CarPhysicsConfig } from '../src/config/schema/car';
 
@@ -57,5 +60,18 @@ describe('applyTuningToPhysics', () => {
     expect(getTuningKey({ ...DEFAULT_CAR_TUNING, speedFactor: 0.85 })).not.toBe(
       getTuningKey(DEFAULT_CAR_TUNING),
     );
+  });
+
+  it('los presets están dentro de los límites y se reconocen por sus valores', () => {
+    for (const preset of TUNING_PRESETS) {
+      for (const key of Object.keys(CAR_TUNING_BOUNDS) as (keyof CarTuning)[]) {
+        const value = preset.tuning[key];
+        const bounds = CAR_TUNING_BOUNDS[key];
+        expect(value).toBeGreaterThanOrEqual(bounds.min);
+        expect(value).toBeLessThanOrEqual(bounds.max);
+      }
+      expect(findPresetForTuning(preset.tuning)?.id).toBe(preset.id);
+    }
+    expect(findPresetForTuning({ ...DEFAULT_CAR_TUNING, gripFactor: 0.99 })).toBeNull();
   });
 });

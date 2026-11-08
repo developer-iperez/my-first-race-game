@@ -42,15 +42,15 @@
       }
       .touch-controls__cluster {
         position: absolute;
-        bottom: 24px;
+        bottom: max(24px, env(safe-area-inset-bottom, 0px));
         display: flex;
         gap: 12px;
       }
       .touch-controls__cluster--steer {
-        left: 20px;
+        left: max(20px, env(safe-area-inset-left, 0px));
       }
       .touch-controls__cluster--pedals {
-        right: 20px;
+        right: max(20px, env(safe-area-inset-right, 0px));
         flex-direction: column;
       }
       .touch-btn {
@@ -77,9 +77,8 @@
       }
       .touch-btn--handbrake {
         position: absolute;
-        bottom: 100px;
-        left: 50%;
-        transform: translateX(-50%);
+        right: max(24px, env(safe-area-inset-right, 0px));
+        bottom: calc(max(24px, env(safe-area-inset-bottom, 0px)) + 152px);
         width: 56px;
         height: 56px;
         font-size: 20px;
@@ -89,12 +88,22 @@
         background: rgba(255, 60, 60, 0.6);
         border-color: #ff3c3c;
       }
+      .touch-btn--pause {
+        position: absolute;
+        top: max(12px, env(safe-area-inset-top, 0px));
+        right: max(64px, calc(env(safe-area-inset-right, 0px) + 52px));
+        width: 44px;
+        height: 44px;
+        font-size: 14px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.12);
+      }
 
-      /* En escritorio (ratón, sin touch) los controles se atenúan: el
-         teclado es el input principal, pero siguen siendo clicables. */
+      /* En escritorio (ratón, sin touch) se ocultan: el teclado es el input
+         principal y no deben tapar el circuito. */
       @media (hover: hover) and (pointer: fine) {
         .touch-controls {
-          opacity: 0.35;
+          display: none;
         }
       }
 

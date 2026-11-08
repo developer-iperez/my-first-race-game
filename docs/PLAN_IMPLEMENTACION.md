@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: Sprint 1 y 2 completos. S3.1 y la base de S3.2 implementados (coche 64×32, tiles/decor, marcas de derrape). Siguiente: temas/escenografía y UI 90s.
+> Estado: Sprint 1 y 2 completos. S3.1, S3.2 (base), S3.5 y S3.6 implementados. Siguiente: UI 90s (S3.3) y HUD responsive (S3.4).
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -707,7 +707,7 @@ pixel art.
 **Depende de:** S1.7, S3.3.
 **Esfuerzo:** M.
 
-### S3.5 — Controles táctiles rediseñados
+### ✅ S3.5 — Controles táctiles rediseñados
 
 **Objetivo:** jugar cómodo con dos pulgares sin tapar la pista.
 
@@ -737,7 +737,7 @@ pixel art.
 **Depende de:** S1.6.
 **Esfuerzo:** M.
 
-### S3.6 — Ajustes para jugadores: presets y reset
+### ✅ S3.6 — Ajustes para jugadores: presets y reset
 
 **Objetivo:** que el menú de ajustes sea comprensible y no un panel de tuning.
 

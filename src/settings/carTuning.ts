@@ -16,6 +16,36 @@ export interface CarTuning {
   gripFactor: number;
 }
 
+export type TuningPresetId = 'arcade' | 'rally' | 'sim' | 'custom';
+
+export interface TuningPreset {
+  id: Exclude<TuningPresetId, 'custom'>;
+  label: string;
+  description: string;
+  tuning: CarTuning;
+}
+
+export const TUNING_PRESETS: TuningPreset[] = [
+  {
+    id: 'arcade',
+    label: 'Arcade',
+    description: 'Equilibrado y fácil de coger. El punto de partida.',
+    tuning: { speedFactor: 0.6, accelFactor: 0.6, gripFactor: 1 },
+  },
+  {
+    id: 'rally',
+    label: 'Rally',
+    description: 'Más velocidad y derrape; pide contravolante.',
+    tuning: { speedFactor: 0.7, accelFactor: 0.7, gripFactor: 0.85 },
+  },
+  {
+    id: 'sim',
+    label: 'Simulación',
+    description: 'Más agarre y peso, menos derrape gratuito.',
+    tuning: { speedFactor: 0.55, accelFactor: 0.5, gripFactor: 1.1 },
+  },
+];
+
 export interface TuningBounds {
   label: string;
   min: number;
@@ -36,7 +66,7 @@ export interface TuningBounds {
 export const CAR_TUNING_BOUNDS: Record<keyof CarTuning, TuningBounds> = {
   speedFactor: { label: 'Velocidad máxima', min: 0.3, max: 0.85, step: 0.01, default: 0.6 },
   accelFactor: { label: 'Aceleración', min: 0.3, max: 1, step: 0.01, default: 0.6 },
-  gripFactor: { label: 'Agarre (menos = más derrape)', min: 0.55, max: 1.1, step: 0.01, default: 1 },
+  gripFactor: { label: 'Agarre en curva', min: 0.55, max: 1.1, step: 0.01, default: 1 },
 };
 
 export const DEFAULT_CAR_TUNING: CarTuning = {
@@ -52,6 +82,18 @@ export const DEFAULT_CAR_TUNING: CarTuning = {
  */
 export function getTuningKey(tuning: CarTuning): string {
   return `s${tuning.speedFactor.toFixed(2)}-a${tuning.accelFactor.toFixed(2)}-g${tuning.gripFactor.toFixed(2)}`;
+}
+
+/** Devuelve el preset que coincide exactamente con el tuning actual, o null. */
+export function findPresetForTuning(tuning: CarTuning): TuningPreset | null {
+  return (
+    TUNING_PRESETS.find(
+      (preset) =>
+        Math.abs(preset.tuning.speedFactor - tuning.speedFactor) < 1e-9 &&
+        Math.abs(preset.tuning.accelFactor - tuning.accelFactor) < 1e-9 &&
+        Math.abs(preset.tuning.gripFactor - tuning.gripFactor) < 1e-9,
+    ) ?? null
+  );
 }
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
