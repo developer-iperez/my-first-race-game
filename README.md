@@ -16,7 +16,8 @@ npm run dev
 
 Abre la URL que muestre Vite (por defecto `http://localhost:5173`).
 Controles: flechas o WASD para acelerar/frenar/girar, espacio para el freno
-de mano (derrapar). También hay controles táctiles y soporte de gamepad.
+de mano (derrapar), R para volver a la última puerta (+3 s) y P/Esc para
+pausar. También hay controles táctiles y soporte de gamepad.
 
 ## Scripts
 

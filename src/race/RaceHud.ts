@@ -17,9 +17,16 @@ export interface DrivingHudState {
   speed: number;
   maxSpeed: number;
   isSkidding: boolean;
+  /** Tiempo total de carrera (incluye vueltas ya completadas). */
+  totalTimeMs: number;
 }
 
-const EMPTY_DRIVING: DrivingHudState = { speed: 0, maxSpeed: 1, isSkidding: false };
+const EMPTY_DRIVING: DrivingHudState = {
+  speed: 0,
+  maxSpeed: 1,
+  isSkidding: false,
+  totalTimeMs: 0,
+};
 
 /**
  * Dibuja un panel estilo "marcador arcade" (fondo oscuro + borde de 2px)
@@ -59,8 +66,13 @@ export class RaceHud {
   private readonly finishPanel: Phaser.GameObjects.Graphics;
   private readonly finishText: Phaser.GameObjects.Text;
   private readonly restartButton: Phaser.GameObjects.Text;
+  private readonly menuButton: Phaser.GameObjects.Text;
+  private readonly scene: Phaser.Scene;
+  private readonly toastText: Phaser.GameObjects.Text;
+  private toastTimer?: Phaser.Time.TimerEvent;
 
-  constructor(scene: Phaser.Scene, onRestart: () => void) {
+  constructor(scene: Phaser.Scene, onRestart: () => void, onMenu: () => void) {
+    this.scene = scene;
     this.lapPanel = scene.add.graphics().setScrollFactor(0).setDepth(99);
     this.lapText = scene.add
       .text(4 + PANEL_PADDING, 4 + PANEL_PADDING, '', {
@@ -151,6 +163,34 @@ export class RaceHud {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', onRestart);
 
+    this.menuButton = scene.add
+      .text(scene.scale.width / 2, scene.scale.height / 2 + 56, '⌂ MENÚ PRINCIPAL', {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#ffffff',
+        backgroundColor: '#202020',
+        padding: { x: 8, y: 5 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(101)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', onMenu);
+
+    this.toastText = scene.add
+      .text(scene.scale.width / 2, scene.scale.height / 2 - 72, '', {
+        fontFamily: 'monospace',
+        fontSize: '12px',
+        color: '#ffcc00',
+        backgroundColor: '#000000',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(150)
+      .setVisible(false);
+
     this.drawRpmBar(0);
   }
 
@@ -185,12 +225,25 @@ export class RaceHud {
     this.driftText.setVisible(!state.finished && driving.isSkidding);
 
     if (state.finished && !this.finishText.visible) {
-      this.finishText.setText(`\u{1F3C1} ¡META! \u{1F3C1}\nMejor vuelta: ${best}`);
+      this.finishText.setText(
+        `\u{1F3C1} ¡META! \u{1F3C1}\nTiempo total: ${formatLapTime(driving.totalTimeMs)}\nMejor vuelta: ${best}`,
+      );
       this.finishText.setVisible(true);
       drawPanel(this.finishPanel, this.finishText, 0xff3333);
       this.finishPanel.setVisible(true);
       this.restartButton.setVisible(true);
+      this.menuButton.setVisible(true);
     }
+  }
+
+  /** Aviso breve (reset con penalización, etc.). */
+  flashMessage(message: string, durationMs = 1500): void {
+    this.toastText.setText(message);
+    this.toastText.setVisible(true);
+    this.toastTimer?.remove(false);
+    this.toastTimer = this.scene.time.delayedCall(durationMs, () => {
+      this.toastText.setVisible(false);
+    });
   }
 
   private drawRpmBar(rpm: number): void {

@@ -131,6 +131,21 @@ describe('LapTracker', () => {
     expect(tracker.nextTargetIndex).toBe(1);
   });
 
+  describe('reset a la última puerta', () => {
+    it('expone la última puerta superada y conserva el siguiente objetivo', () => {
+      const tracker = new LapTracker(waypoints, 3, RADIUS);
+      expect(tracker.lastPassedWaypoint).toEqual(waypoints[0]);
+
+      tracker.update(100, 0, SPEED, 0, 1000);
+      expect(tracker.lastPassedWaypoint).toEqual(waypoints[1]);
+      expect(tracker.nextTargetIndex).toBe(2);
+
+      tracker.resetPreviousPosition(100, 0);
+      tracker.update(100, 100, 0, SPEED, 2000);
+      expect(tracker.nextTargetIndex).toBe(3);
+    });
+  });
+
   describe('puertas con anchura (angle + width)', () => {
     const gatedWaypoints: Waypoint[] = [
       { x: 0, y: 0, type: 'start_finish', angle: 0, width: 20 },

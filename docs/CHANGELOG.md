@@ -123,5 +123,8 @@ recuperar del historial de commits.
 - S2.3: checkpoints como puertas reales (`angle` + `width`); `LapTracker`
   detecta el cruce del segmento y no cuenta atajos ni cruces en sentido
   contrario. Puertas visibles y flecha de dirección en el HUD.
+- S2.4: pantalla de resultados con tiempo total, mejor vuelta y botones de
+  reinicio/menú; pausa con P/Esc y menú de pausa (oculta los controles táctiles).
+- S2.5: R recoloca el coche en la última puerta con penalización de 3 s.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

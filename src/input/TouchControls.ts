@@ -69,6 +69,11 @@ export class TouchControls {
     });
   }
 
+  /** Oculta los controles (pausa, resultados) sin destruirlos. */
+  setVisible(visible: boolean): void {
+    this.root.style.display = visible ? '' : 'none';
+  }
+
   destroy(): void {
     this.root.remove();
   }

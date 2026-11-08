@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: Sprint 1 completo y S2.1–S2.3 implementados. S2.4 (resultados y pausa) es el siguiente.
+> Estado: Sprint 1 completo y S2.1–S2.5 implementados. S2.6 (fantasma y rejugabilidad) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -513,7 +513,7 @@ sentido correcto.
 **Depende de:** S2.2.
 **Esfuerzo:** L.
 
-### S2.4 — Pantalla de resultados y pausa
+### ✅ S2.4 — Pantalla de resultados y pausa
 
 **Objetivo:** cerrar el bucle de juego con información y acciones claras.
 
@@ -544,7 +544,7 @@ sentido correcto.
 **Depende de:** S2.3.
 **Esfuerzo:** M.
 
-### S2.5 — Reinicio rápido y reset a la última puerta
+### ✅ S2.5 — Reinicio rápido y reset a la última puerta
 
 **Objetivo:** que quedarse atascado no obligue a abandonar la carrera.
 

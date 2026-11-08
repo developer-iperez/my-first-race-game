@@ -83,6 +83,22 @@ export class LapTracker {
     return this.nextWaypointIndex;
   }
 
+  /** Última puerta superada; sirve para recolocar el coche tras un atasco. */
+  get lastPassedWaypoint(): Waypoint {
+    const index = (this.nextWaypointIndex - 1 + this.waypoints.length) % this.waypoints.length;
+    return this.waypoints[index];
+  }
+
+  /**
+   * Fija la posición anterior tras un reset manual. Evita que el primer
+   * frame después de recolocar el coche interprete el teletransporte como un
+   * cruce de puerta.
+   */
+  resetPreviousPosition(x: number, y: number): void {
+    this.previousX = x;
+    this.previousY = y;
+  }
+
   update(x: number, y: number, vx: number, vy: number, elapsedMs: number): void {
     if (this.finished || this.waypoints.length === 0) return;
 

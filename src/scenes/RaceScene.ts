@@ -12,6 +12,7 @@ import { applyTuningToPhysics } from '../settings/carTuning';
 import { BestLaps } from '../race/BestLaps';
 import { LapTracker } from '../race/LapTracker';
 import { RaceHud, type DrivingHudState } from '../race/RaceHud';
+import { PauseMenu } from '../race/PauseMenu';
 import { NextTargetIndicator } from '../race/NextTargetIndicator';
 import { RaceAudio } from '../race/RaceAudio';
 import { RaceCountdown } from '../race/RaceCountdown';
@@ -37,6 +38,7 @@ interface RaceSceneData {
  * velocidad.
  */
 const OFFTRACK_GRIP_RETENTION = 0.9;
+const RESET_PENALTY_MS = 3000;
 
 export class RaceScene extends Phaser.Scene {
   private track!: TrackDefinition;
@@ -52,6 +54,11 @@ export class RaceScene extends Phaser.Scene {
   private unsubscribeSettings?: () => void;
   private lapTracker!: LapTracker;
   private hud!: RaceHud;
+  private pauseMenu!: PauseMenu;
+  private pauseKey!: Phaser.Input.Keyboard.Key;
+  private escapeKey!: Phaser.Input.Keyboard.Key;
+  private resetKey!: Phaser.Input.Keyboard.Key;
+  private manualPaused = false;
   private nextTargetIndicator!: NextTargetIndicator;
   private audio!: RaceAudio;
   private countdown!: RaceCountdown;
@@ -84,6 +91,7 @@ export class RaceScene extends Phaser.Scene {
     this.raceElapsedMs = 0;
     this.wasSettingsMenuOpen = false;
     this.autoPaused = false;
+    this.manualPaused = false;
     this.fixedStep.reset();
     this.inputManager.reset();
 
@@ -123,7 +131,11 @@ export class RaceScene extends Phaser.Scene {
       this.track.tileSize * 2.5,
       savedBestLapMs,
     );
-    this.hud = new RaceHud(this, () => this.restartRace());
+    this.hud = new RaceHud(
+      this,
+      () => this.restartRace(),
+      () => this.exitToMenu(),
+    );
     this.nextTargetIndicator = new NextTargetIndicator(this);
     this.audio = new RaceAudio(this);
     this.skidParticles = new SkidParticles(this);
@@ -142,6 +154,14 @@ export class RaceScene extends Phaser.Scene {
       right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.pauseKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+    this.escapeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.resetKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.pauseMenu = new PauseMenu(this, {
+      onResume: () => this.setManualPaused(false),
+      onRestart: () => this.restartRace(),
+      onMenu: () => this.exitToMenu(),
+    });
 
     // Controles táctiles: para tablet/móvil sin teclado físico. Se montan
     // como DOM aparte de Phaser (multi-touch real) y se combinan con el
@@ -170,6 +190,7 @@ export class RaceScene extends Phaser.Scene {
       this.fixedStep.reset();
       this.touchControls.destroy();
       this.settingsMenu.destroy();
+      this.pauseMenu.destroy();
       this.nextTargetIndicator.destroy();
       this.countdown.destroy();
       this.skidParticles.destroy();
@@ -210,9 +231,56 @@ export class RaceScene extends Phaser.Scene {
     if (paused) {
       this.fixedStep.reset();
       this.sound.pauseAll();
-    } else if (!this.settingsMenu.isOpen) {
+    } else if (!this.settingsMenu.isOpen && !this.manualPaused) {
       this.sound.resumeAll();
     }
+  }
+
+  private setManualPaused(paused: boolean): void {
+    if (paused === this.manualPaused) return;
+    this.manualPaused = paused;
+
+    if (paused) {
+      this.fixedStep.reset();
+      this.touchControls.setVisible(false);
+      this.pauseMenu.show();
+      this.sound.pauseAll();
+    } else {
+      this.pauseMenu.hide();
+      this.touchControls.setVisible(!this.lapTracker.getState().finished);
+      if (!this.autoPaused && !this.settingsMenu.isOpen) this.sound.resumeAll();
+    }
+  }
+
+  /**
+   * Recoloca el coche en la última puerta superada (R). Sirve para salir de
+   * un atasco sin abandonar; añade 3 s al cronómetro para que no sea una
+   * forma de hacer trampa.
+   */
+  private resetToLastGate(): void {
+    const target = this.lapTracker.lastPassedWaypoint;
+    const next = this.track.waypoints[this.lapTracker.nextTargetIndex];
+    // Mirando hacia la siguiente puerta, no hacia la dirección de la puerta
+    // recién pasada: en un checkpoint en curva, lo segundo apuntaría a la pared.
+    const angle = next
+      ? Math.atan2(next.y - target.y, next.x - target.x)
+      : (target.angle !== undefined ? Phaser.Math.DegToRad(target.angle) : this.car.state.angle);
+    const resetSpeed = 0;
+
+    this.car.setState({
+      ...this.car.state,
+      x: target.x,
+      y: target.y,
+      angle,
+      vx: resetSpeed,
+      vy: resetSpeed,
+      yawRate: 0,
+      reverseHold: 0,
+    });
+    this.lapTracker.resetPreviousPosition(target.x, target.y);
+    this.raceElapsedMs += RESET_PENALTY_MS;
+    this.fixedStep.reset();
+    this.hud.flashMessage('RESET +3 s');
   }
 
   private getDrivingHudState(): DrivingHudState {
@@ -220,6 +288,7 @@ export class RaceScene extends Phaser.Scene {
       speed: Math.hypot(this.car.state.vx, this.car.state.vy),
       maxSpeed: this.car.maxSpeed,
       isSkidding: this.car.isSkidding,
+      totalTimeMs: this.raceElapsedMs,
     };
   }
 
@@ -242,6 +311,25 @@ export class RaceScene extends Phaser.Scene {
     // Si la ventana perdió el foco, no se simula nada: al volver el
     // acumulador está a cero y no hay salto de física.
     if (this.autoPaused) return;
+
+    if (this.manualPaused) {
+      if (
+        Phaser.Input.Keyboard.JustDown(this.pauseKey) ||
+        Phaser.Input.Keyboard.JustDown(this.escapeKey)
+      ) {
+        this.setManualPaused(false);
+      }
+      return;
+    }
+
+    if (
+      !this.settingsMenu.isOpen &&
+      (Phaser.Input.Keyboard.JustDown(this.pauseKey) ||
+        Phaser.Input.Keyboard.JustDown(this.escapeKey))
+    ) {
+      this.setManualPaused(true);
+      return;
+    }
 
     // Abrir los ajustes congela el juego (early return de abajo), pero eso
     // solo detiene NUESTRA lógica de frame — el motor/derrape de Phaser
@@ -273,6 +361,11 @@ export class RaceScene extends Phaser.Scene {
     }
 
     const wasFinished = this.lapTracker.getState().finished;
+
+    if (!wasFinished && Phaser.Input.Keyboard.JustDown(this.resetKey)) {
+      this.resetToLastGate();
+      return;
+    }
 
     if (wasFinished) {
       // Carrera terminada: el coche se congela donde esté (no se procesa
@@ -386,6 +479,7 @@ export class RaceScene extends Phaser.Scene {
 
       if (lapState.finished) {
         this.nextTargetIndicator.hide();
+        this.touchControls.setVisible(false);
       } else {
         const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
         this.nextTargetIndicator.update(nextTarget, this.raceElapsedMs);

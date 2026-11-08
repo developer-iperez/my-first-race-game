@@ -72,6 +72,7 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Tres circuitos rediseñados (Bosque Bravo, Duna Veloz y Serpiente) con
   5 vueltas, muros, chicanes y zonas de arena
 - ✅ Checkpoints como puertas con anchura y dirección (anti-corte)
+- ✅ Resultados con tiempo total, pausa y reset a la última puerta con penalización
 - ⬜ Publicado en itch.io
 
 ---
