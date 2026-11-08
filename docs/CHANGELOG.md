@@ -110,5 +110,7 @@ recuperar del historial de commits.
   verdad (antes solo se miraba el centro). Polvo tintado por superficie,
   `surfaceKey` en telemetría y validación de que todo tile transitable define
   grip/drag.
+- S1.6: input unificado teclado/táctil/gamepad (`InputManager`), con rampa de
+  volante de 0,15 s, WASD, zona muerta analógica y pointer capture en táctil.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

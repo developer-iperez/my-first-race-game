@@ -44,11 +44,15 @@ export class TouchControls {
 
       const press = (event: PointerEvent): void => {
         event.preventDefault();
+        button.setPointerCapture?.(event.pointerId);
         this.state[action] = true;
         button.classList.add('is-active');
       };
       const release = (event: PointerEvent): void => {
         event.preventDefault();
+        if (button.hasPointerCapture?.(event.pointerId)) {
+          button.releasePointerCapture(event.pointerId);
+        }
         this.state[action] = false;
         button.classList.remove('is-active');
       };
@@ -57,6 +61,9 @@ export class TouchControls {
       button.addEventListener('pointerup', release);
       button.addEventListener('pointercancel', release);
       button.addEventListener('pointerleave', release);
+      // Si el navegador cancela la captura (llamada, gesto del sistema...),
+      // el botón no puede quedarse pulsado.
+      button.addEventListener('lostpointercapture', release);
       // Evita el menú contextual de "mantener pulsado" en móvil.
       button.addEventListener('contextmenu', (e) => e.preventDefault());
     });

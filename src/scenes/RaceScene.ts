@@ -5,6 +5,7 @@ import { sampleCarSurfaces } from '../track/TrackQuery';
 import { CarLoader } from '../entities/CarLoader';
 import { Car } from '../entities/Car';
 import { TouchControls } from '../input/TouchControls';
+import { InputManager, type GamepadLike } from '../input/InputManager';
 import { SettingsMenu } from '../settings/SettingsMenu';
 import { Settings } from '../settings/Settings';
 import { applyTuningToPhysics } from '../settings/carTuning';
@@ -42,7 +43,9 @@ export class RaceScene extends Phaser.Scene {
   private map!: Phaser.Tilemaps.Tilemap;
   private car!: Car;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private wasd!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
   private handbrakeKey!: Phaser.Input.Keyboard.Key;
+  private readonly inputManager = new InputManager();
   private touchControls!: TouchControls;
   private settingsMenu!: SettingsMenu;
   private carDefinition!: CarDefinition;
@@ -82,6 +85,7 @@ export class RaceScene extends Phaser.Scene {
     this.wasSettingsMenuOpen = false;
     this.autoPaused = false;
     this.fixedStep.reset();
+    this.inputManager.reset();
 
     this.sceneData = data;
     const loaded = TrackLoader.get(this, data.trackKey);
@@ -131,6 +135,12 @@ export class RaceScene extends Phaser.Scene {
     this.countdown = new RaceCountdown(this, (final) => this.audio.playCountdownBeep(final));
 
     this.cursors = this.input.keyboard!.createCursorKeys();
+    this.wasd = {
+      up: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+      down: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+      left: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+      right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+    };
     this.handbrakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // Controles táctiles: para tablet/móvil sin teclado físico. Se montan
@@ -268,7 +278,7 @@ export class RaceScene extends Phaser.Scene {
         this.car.surfaceKey,
       );
     } else {
-      const input = this.readInput();
+      const input = this.readInput(frameDeltaSeconds);
       const previousTargetIndex = this.lapTracker.nextTargetIndex;
       const previousLastLapMs = this.lapTracker.getState().lastLapMs;
       let finishedDuringFrame = false;
@@ -377,21 +387,26 @@ export class RaceScene extends Phaser.Scene {
     this.hud.update(this.lapTracker.getState(), this.raceElapsedMs - this.lapTracker.currentLapStartMs);
   }
 
-  private readInput(): CarInput {
-    const touch = this.touchControls.state;
+  private readInput(dtSeconds: number): CarInput {
+    return this.inputManager.update(dtSeconds, {
+      keyboard: {
+        throttleUp: this.cursors.up.isDown || this.wasd.up.isDown,
+        throttleDown: this.cursors.down.isDown || this.wasd.down.isDown,
+        left: this.cursors.left.isDown || this.wasd.left.isDown,
+        right: this.cursors.right.isDown || this.wasd.right.isDown,
+        handbrake: this.handbrakeKey.isDown,
+      },
+      touch: this.touchControls.state,
+      gamepad: this.readGamepad(),
+    });
+  }
 
-    let throttle = 0;
-    if (this.cursors.up.isDown || touch.throttleUp) throttle += 1;
-    if (this.cursors.down.isDown || touch.throttleDown) throttle -= 1;
-
-    let steer = 0;
-    if (this.cursors.left.isDown || touch.left) steer -= 1;
-    if (this.cursors.right.isDown || touch.right) steer += 1;
-
-    return {
-      throttle,
-      steer,
-      handbrake: this.handbrakeKey.isDown || touch.handbrake,
-    };
+  private readGamepad(): GamepadLike | null {
+    const gamepads = navigator.getGamepads?.();
+    if (!gamepads) return null;
+    for (const gamepad of gamepads) {
+      if (gamepad?.connected) return gamepad;
+    }
+    return null;
   }
 }

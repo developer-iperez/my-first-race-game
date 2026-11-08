@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: S1.1–S1.5 implementados. S1.6 (input con rampa, WASD y gamepad) es el siguiente.
+> Estado: S1.1–S1.6 implementados. S1.7 (HUD de conducción) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -323,7 +323,7 @@ controlable.
 **Depende de:** S1.4.
 **Esfuerzo:** M.
 
-### S1.6 — Input con rampa, WASD y gamepad
+### ✅ S1.6 — Input con rampa, WASD y gamepad
 
 **Objetivo:** que el volante no sea un interruptor y que el juego sea cómodo
 con teclado, mando y táctil.
