@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: S1.1–S1.6 implementados. S1.7 (HUD de conducción) es el siguiente.
+> Estado: S1.1–S1.7 implementados. S1.8 (tests de aceptación de contenido) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -353,7 +353,7 @@ con teclado, mando y táctil.
 **Depende de:** S1.4 (para probar el feel con rampa).
 **Esfuerzo:** M.
 
-### S1.7 — HUD de conducción: velocidad, RPM, marcha y derrape
+### ✅ S1.7 — HUD de conducción: velocidad, RPM, marcha y derrape
 
 **Objetivo:** que el jugador sepa a qué velocidad va y qué está haciendo el
 coche.

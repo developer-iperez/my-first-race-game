@@ -59,6 +59,7 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Superficies reales: grip/drag muestreados en las 4 ruedas, hierba/arena
   con datos validados y polvo tintado por superficie
 - ✅ Input unificado teclado/táctil/gamepad, volante con rampa y WASD
+- ✅ HUD de conducción: velocímetro, marcha, RPM, derrape y delta de vuelta
 
 ## v1.0 — Primera versión completa 🟨
 - ✅ Pantalla de inicio (título + "pulsa para empezar", con ajustes de

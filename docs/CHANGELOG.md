@@ -112,5 +112,8 @@ recuperar del historial de commits.
   grip/drag.
 - S1.6: input unificado teclado/táctil/gamepad (`InputManager`), con rampa de
   volante de 0,15 s, WASD, zona muerta analógica y pointer capture en táctil.
+- S1.7: HUD de conducción con velocímetro, marcha, RPM, derrape y delta de
+  vuelta; el panel de velocidad se coloca junto al botón de ajustes para no
+  tapar los waypoints del borde superior.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

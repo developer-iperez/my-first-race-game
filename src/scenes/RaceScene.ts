@@ -11,7 +11,7 @@ import { Settings } from '../settings/Settings';
 import { applyTuningToPhysics } from '../settings/carTuning';
 import { BestLaps } from '../race/BestLaps';
 import { LapTracker } from '../race/LapTracker';
-import { RaceHud } from '../race/RaceHud';
+import { RaceHud, type DrivingHudState } from '../race/RaceHud';
 import { NextTargetIndicator } from '../race/NextTargetIndicator';
 import { RaceAudio } from '../race/RaceAudio';
 import { RaceCountdown } from '../race/RaceCountdown';
@@ -215,6 +215,14 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
+  private getDrivingHudState(): DrivingHudState {
+    return {
+      speed: Math.hypot(this.car.state.vx, this.car.state.vy),
+      maxSpeed: this.car.maxSpeed,
+      isSkidding: this.car.isSkidding,
+    };
+  }
+
   private handleImpact(impact: CarCollisionImpact): void {
     this.audio.playImpact(impact.speed);
     this.skidParticles.emitImpact(impact.x, impact.y, impact.speed);
@@ -260,7 +268,7 @@ export class RaceScene extends Phaser.Scene {
     if (this.countdown.update(frameDeltaSeconds * 1000)) {
       const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
       this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, time);
-      this.hud.update(this.lapTracker.getState(), 0);
+      this.hud.update(this.lapTracker.getState(), 0, this.getDrivingHudState());
       return;
     }
 
@@ -384,7 +392,11 @@ export class RaceScene extends Phaser.Scene {
       }
     }
 
-    this.hud.update(this.lapTracker.getState(), this.raceElapsedMs - this.lapTracker.currentLapStartMs);
+    this.hud.update(
+      this.lapTracker.getState(),
+      this.raceElapsedMs - this.lapTracker.currentLapStartMs,
+      this.getDrivingHudState(),
+    );
   }
 
   private readInput(dtSeconds: number): CarInput {
