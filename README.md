@@ -24,6 +24,7 @@ Controles: flechas para acelerar/frenar/girar, espacio para el freno de mano (de
 | `npm run dev` | Servidor de desarrollo con recarga en caliente |
 | `npm run build` | Type-check + build de producción a `dist/` |
 | `npm run test` | Tests (Vitest) del modelo de físicas y los esquemas de datos |
+| `npm run feel` | Informe de métricas de conducción (aceleración, frenada, derrape, muro) |
 | `npm run lint` | ESLint |
 
 ## Documentación

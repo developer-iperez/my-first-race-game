@@ -24,7 +24,7 @@ export default [
     },
   },
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.{mjs,ts}'],
     languageOptions: {
       globals: globals.node,
     },

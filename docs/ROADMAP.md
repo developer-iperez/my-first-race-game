@@ -49,6 +49,9 @@ Que *conducir sea divertido* aunque no haya arte final.
   la maniobrabilidad (giro suave/lento intacto, se puede contravolantear)
 - ✅ Salirse de pista ya no para el coche en seco: fricción fuerte pero
   el coche sigue moviéndose, más fácil recuperar el trazado
+- ✅ Paso de física fijo (120 Hz) con clamp de delta y pausa al perder foco
+- ✅ Simulador de métricas de feel (`npm run feel`) para tunear con objetivos
+  medibles (ver `docs/AUDITORIA.md`)
 
 ## v1.0 — Primera versión completa 🟨
 - ✅ Pantalla de inicio (título + "pulsa para empezar", con ajustes de

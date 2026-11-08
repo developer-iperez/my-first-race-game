@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:driving": "vitest run tests/carPhysics.test.ts"
+    "test:driving": "vitest run tests/carPhysics.test.ts",
+    "feel": "vite-node scripts/feel-metrics.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0",
@@ -26,6 +27,7 @@
     "prettier": "^3.4.2",
     "typescript": "^5.7.3",
     "vite": "^6.0.7",
+    "vite-node": "^2.1.9",
     "vitest": "^2.1.8"
   }
 }

@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: propuesta de ejecución por fases. No se ha modificado código de juego.
+> Estado: S1.1 y S1.2 implementados. S1.3 (colisión sólida) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -171,7 +171,7 @@ solo, sin muros atravesables y sin frenadas de teletransporte.
 **Criterio de salida:** métricas de la tabla 2.1 dentro de rango, HUD con
 velocidad, input con rampa y tests de feel en verde.
 
-### S1.1 — Baseline y simulador de métricas
+### ✅ S1.1 — Baseline y simulador de métricas
 
 **Objetivo:** medir antes de tocar para no tunear a ciegas.
 
@@ -191,7 +191,7 @@ velocidad, input con rampa y tests de feel en verde.
 **Depende de:** nada.
 **Esfuerzo:** S.
 
-### S1.2 — Paso de física fijo
+### ✅ S1.2 — Paso de física fijo
 
 **Objetivo:** que el juego se comporte igual a 30, 60 o 144 fps y no se
 atraviesen muros tras un tirón de framerate.

@@ -96,5 +96,9 @@ recuperar del historial de commits.
 - Selector de circuito en el título (`TRACK_CATALOG`): flechas ◀▶ para
   elegir, persistido en `Settings.trackKey`. Segundo circuito, "Duna
   Veloz" (tema desierto, infield de arena), añadido junto al selector.
+- S1.1: simulador de métricas de conducción (`npm run feel`) con objetivos de
+  la auditoría; baseline actual 0/10 (los FAIL guían el re-tuning de S1.4).
+- S1.2: bucle de física a paso fijo (120 Hz) con clamp de delta y pausa real
+  al perder foco/visibilidad; evita túneles y saltos tras un freeze.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

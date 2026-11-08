@@ -18,6 +18,7 @@ import { SkidParticles } from '../race/SkidParticles';
 import { DriveTelemetryHud } from '../race/DriveTelemetryHud';
 import type { CarDefinition } from '../config/schema/car';
 import { frameRateIndependentDecay, type CarInput } from '../physics/carPhysics';
+import { DEFAULT_MAX_FRAME_DELTA_SECONDS, FixedStepLoop } from '../physics/fixedStep';
 import type { TrackDefinition } from '../config/schema/track';
 
 interface RaceSceneData {
@@ -54,6 +55,18 @@ export class RaceScene extends Phaser.Scene {
   private raceElapsedMs = 0;
   private sceneData!: RaceSceneData;
   private wasSettingsMenuOpen = false;
+  private readonly fixedStep = new FixedStepLoop();
+  private autoPaused = false;
+
+  private readonly onVisibilityChange = (): void => {
+    this.setAutoPaused(document.visibilityState === 'hidden');
+  };
+  private readonly onWindowBlur = (): void => {
+    this.setAutoPaused(true);
+  };
+  private readonly onWindowFocus = (): void => {
+    this.setAutoPaused(false);
+  };
 
   constructor() {
     super('Race');
@@ -65,6 +78,8 @@ export class RaceScene extends Phaser.Scene {
     // resetearlos aquí a mano o se arrastra el cronómetro de la carrera anterior.
     this.raceElapsedMs = 0;
     this.wasSettingsMenuOpen = false;
+    this.autoPaused = false;
+    this.fixedStep.reset();
 
     this.sceneData = data;
     const loaded = TrackLoader.get(this, data.trackKey);
@@ -128,7 +143,19 @@ export class RaceScene extends Phaser.Scene {
       this.telemetryHud.setVisible(Settings.get().debugTelemetryEnabled);
     });
 
+    // Pausa real al perder foco: no basta con que Phaser deje de llamar a
+    // update(), porque al volver habría un delta gigante y el motor/derrape
+    // seguirían sonando. Se congela el bucle y se reanuda con el acumulador
+    // a cero.
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    window.addEventListener('blur', this.onWindowBlur);
+    window.addEventListener('focus', this.onWindowFocus);
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+      window.removeEventListener('blur', this.onWindowBlur);
+      window.removeEventListener('focus', this.onWindowFocus);
+      this.fixedStep.reset();
       this.touchControls.destroy();
       this.settingsMenu.destroy();
       this.nextTargetIndicator.destroy();
@@ -159,6 +186,23 @@ export class RaceScene extends Phaser.Scene {
     this.sound.mute = !Settings.get().soundEnabled;
   }
 
+  /**
+   * Congela/reanuda la carrera al perder el foco de la ventana. Si los
+   * ajustes están abiertos, el audio debe seguir pausado: ya lo gestiona
+   * SettingsMenu, así que al volver solo se reanuda si el panel está cerrado.
+   */
+  private setAutoPaused(paused: boolean): void {
+    if (paused === this.autoPaused) return;
+    this.autoPaused = paused;
+
+    if (paused) {
+      this.fixedStep.reset();
+      this.sound.pauseAll();
+    } else if (!this.settingsMenu.isOpen) {
+      this.sound.resumeAll();
+    }
+  }
+
   /** Reinicia la carrera desde cero: mismo circuito y coche, todo el estado limpio. */
   private restartRace(): void {
     this.scene.restart(this.sceneData);
@@ -169,7 +213,11 @@ export class RaceScene extends Phaser.Scene {
     this.scene.start('Title', { carKey: this.sceneData.carKey });
   }
 
-  update(_time: number, deltaMs: number): void {
+  update(time: number, deltaMs: number): void {
+    // Si la ventana perdió el foco, no se simula nada: al volver el
+    // acumulador está a cero y no hay salto de física.
+    if (this.autoPaused) return;
+
     // Abrir los ajustes congela el juego (early return de abajo), pero eso
     // solo detiene NUESTRA lógica de frame — el motor/derrape de Phaser
     // siguen sonando en bucle por su cuenta si no se pausan explícitamente.
@@ -183,13 +231,18 @@ export class RaceScene extends Phaser.Scene {
     }
     if (this.settingsMenu.isOpen) return;
 
+    // El delta real se recorta antes de la cuenta atrás y del acumulador.
+    // Tras un freeze, un frame de varios segundos no debe mover el coche ni
+    // saltarse medio cronómetro.
+    const frameDeltaSeconds = Math.min(deltaMs / 1000, DEFAULT_MAX_FRAME_DELTA_SECONDS);
+
     // Cuenta atrás de salida: mientras muestra 3/2/1 el coche está congelado
     // en la parrilla — no se procesa entrada ni física, ni corre el crono
     // (que arranca en el "¡YA!"). El indicador de objetivo sí se muestra ya,
     // para saber hacia dónde salir.
-    if (this.countdown.update(deltaMs)) {
+    if (this.countdown.update(frameDeltaSeconds * 1000)) {
       const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
-      this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, _time);
+      this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, time);
       this.hud.update(this.lapTracker.getState(), 0);
       return;
     }
@@ -202,53 +255,69 @@ export class RaceScene extends Phaser.Scene {
       this.nextTargetIndicator.hide();
       this.skidParticles.update(this.car.state.x, this.car.state.y, this.car.state.angle, false);
     } else {
-      this.raceElapsedMs += deltaMs;
-
-      const dt = deltaMs / 1000;
       const input = this.readInput();
-      const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
-      const surfaceDrag = getSurfaceDragAt(this.track, this.car.state.x, this.car.state.y);
-
-      this.car.update(dt, input, surfaceGrip, surfaceDrag);
-      this.telemetryHud.update(this.car.telemetry);
-
-      if (isWallAt(this.track, this.car.state.x, this.car.state.y)) {
-        const offtrackDecay = frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt);
-        this.car.setState({
-          ...this.car.state,
-          vx: this.car.state.vx * offtrackDecay,
-          vy: this.car.state.vy * offtrackDecay,
-        });
-      }
-
-      // La cámara es fija y encuadra el circuito completo sin scroll (F3):
-      // sin este límite, un derrape fuerte hacia el borde podría sacar el
-      // coche fuera del área visible y "perderlo" de la pantalla. Se trata
-      // como un muro (misma fricción fuerte que isWallAt) en vez de solo
-      // recortar la posición: si no, el coche podía quedarse pegado al
-      // borde a toda velocidad y seguir deslizando a lo largo de él
-      // indefinidamente, como si el borde de la pantalla no existiera.
-      const clampedX = Phaser.Math.Clamp(this.car.state.x, 0, this.track.size.width);
-      const clampedY = Phaser.Math.Clamp(this.car.state.y, 0, this.track.size.height);
-      const hitScreenEdge = clampedX !== this.car.state.x || clampedY !== this.car.state.y;
-      const edgeDecay = hitScreenEdge ? frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt) : 1;
-      this.car.setState({
-        ...this.car.state,
-        x: clampedX,
-        y: clampedY,
-        vx: this.car.state.vx * edgeDecay,
-        vy: this.car.state.vy * edgeDecay,
-      });
-
       const previousTargetIndex = this.lapTracker.nextTargetIndex;
       const previousLastLapMs = this.lapTracker.getState().lastLapMs;
-      this.lapTracker.update(
-        this.car.state.x,
-        this.car.state.y,
-        this.car.state.vx,
-        this.car.state.vy,
-        this.raceElapsedMs,
-      );
+      let finishedDuringFrame = false;
+
+      this.fixedStep.advance(frameDeltaSeconds, (dt) => {
+        if (finishedDuringFrame) return false;
+
+        this.raceElapsedMs += dt * 1000;
+
+        const surfaceGrip = getSurfaceGripAt(this.track, this.car.state.x, this.car.state.y);
+        const surfaceDrag = getSurfaceDragAt(this.track, this.car.state.x, this.car.state.y);
+
+        this.car.update(dt, input, surfaceGrip, surfaceDrag);
+
+        // Colisión legacy (S1.3 la sustituye por colisión real): de momento
+        // solo frena al coche dentro de un muro, sin corregir posición.
+        if (isWallAt(this.track, this.car.state.x, this.car.state.y)) {
+          const offtrackDecay = frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt);
+          this.car.setState({
+            ...this.car.state,
+            vx: this.car.state.vx * offtrackDecay,
+            vy: this.car.state.vy * offtrackDecay,
+          });
+        }
+
+        // La cámara es fija y encuadra el circuito completo sin scroll (F3):
+        // sin este límite, un derrape fuerte hacia el borde podría sacar el
+        // coche fuera del área visible y "perderlo" de la pantalla. Se trata
+        // como un muro (misma fricción fuerte que isWallAt) en vez de solo
+        // recortar la posición: si no, el coche podía quedarse pegado al
+        // borde a toda velocidad y seguir deslizando a lo largo de él
+        // indefinidamente, como si el borde de la pantalla no existiera.
+        const clampedX = Phaser.Math.Clamp(this.car.state.x, 0, this.track.size.width);
+        const clampedY = Phaser.Math.Clamp(this.car.state.y, 0, this.track.size.height);
+        const hitScreenEdge = clampedX !== this.car.state.x || clampedY !== this.car.state.y;
+        const edgeDecay = hitScreenEdge ? frameRateIndependentDecay(OFFTRACK_GRIP_RETENTION, dt) : 1;
+        this.car.setState({
+          ...this.car.state,
+          x: clampedX,
+          y: clampedY,
+          vx: this.car.state.vx * edgeDecay,
+          vy: this.car.state.vy * edgeDecay,
+        });
+
+        this.lapTracker.update(
+          this.car.state.x,
+          this.car.state.y,
+          this.car.state.vx,
+          this.car.state.vy,
+          this.raceElapsedMs,
+        );
+
+        if (this.lapTracker.getState().finished) {
+          finishedDuringFrame = true;
+          return false;
+        }
+
+        return true;
+      });
+
+      this.telemetryHud.update(this.car.telemetry);
+
       if (this.lapTracker.nextTargetIndex !== previousTargetIndex) {
         this.audio.playCheckpoint();
       }
@@ -268,8 +337,12 @@ export class RaceScene extends Phaser.Scene {
       this.audio.update(speed, this.car.maxSpeed, this.car.isSkidding);
       this.skidParticles.update(this.car.state.x, this.car.state.y, this.car.state.angle, this.car.isSkidding);
 
-      const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
-      this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);
+      if (lapState.finished) {
+        this.nextTargetIndicator.hide();
+      } else {
+        const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
+        this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);
+      }
     }
 
     this.hud.update(this.lapTracker.getState(), this.raceElapsedMs - this.lapTracker.currentLapStartMs);
