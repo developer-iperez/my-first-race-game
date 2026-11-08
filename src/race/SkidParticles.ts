@@ -33,12 +33,20 @@ export class SkidParticles {
     this.emitter.setDepth(40);
   }
 
-  update(x: number, y: number, angle: number, skidding: boolean, surfaceKey = 'asphalt'): void {
+  update(
+    x: number,
+    y: number,
+    angle: number,
+    skidding: boolean,
+    surfaceKey = 'asphalt',
+    rearOffset = 6,
+  ): void {
     this.setSurface(surfaceKey);
 
     if (skidding) {
-      // Un poco por detrás del centro del coche (opuesto al morro).
-      this.emitter.setPosition(x - Math.cos(angle) * 6, y - Math.sin(angle) * 6);
+      // Detrás del eje trasero (opuesto al morro), no en el centro del coche.
+      const offset = Math.max(0, rearOffset);
+      this.emitter.setPosition(x - Math.cos(angle) * offset, y - Math.sin(angle) * offset);
       if (!this.emitter.emitting) this.emitter.start();
     } else if (this.emitter.emitting) {
       this.emitter.stop();

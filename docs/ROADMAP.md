@@ -74,6 +74,8 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Checkpoints como puertas con anchura y dirección (anti-corte)
 - ✅ Resultados con tiempo total, pausa y reset a la última puerta con penalización
 - ✅ Fantasma de la mejor vuelta, récords por tuning y medallas por tiempo
+- ✅ Coche pixel art 64×32 y tileset con textura/decoración
+- ✅ Marcas de derrape persistentes en pista
 - ⬜ Publicado en itch.io
 
 ---

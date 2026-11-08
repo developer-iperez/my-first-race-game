@@ -19,6 +19,16 @@ export function renderTrack(scene: Phaser.Scene, map: Phaser.Tilemaps.Tilemap, t
   }
   map.createLayer('surface', tileset, 0, 0);
 
+  // Decoración: árboles, rocas y arbustos colocados como objetos en Tiled.
+  // No participa en colisiones; se coloca sobre todo en islas y bordes.
+  const decorFrames: Record<string, number> = { tree: 0, rock: 1, bush: 2 };
+  const decorLayer = map.getObjectLayer('decor');
+  for (const object of decorLayer?.objects ?? []) {
+    const frame = decorFrames[object.type ?? ''];
+    if (frame === undefined) continue;
+    scene.add.image(object.x ?? 0, object.y ?? 0, 'decor', frame).setDepth(1);
+  }
+
   // Marcadores de meta/checkpoints por encima de los tiles.
   const graphics = scene.add.graphics();
   for (const waypoint of track.waypoints) {

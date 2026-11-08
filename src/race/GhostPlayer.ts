@@ -20,7 +20,7 @@ export class GhostPlayer {
       .setDisplaySize(length, width)
       .setAlpha(0.38)
       .setTint(0x66ccff)
-      .setDepth(1)
+      .setDepth(2)
       .setVisible(false);
   }
 

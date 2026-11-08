@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: Sprint 1 y Sprint 2 completos (S1.1–S1.8, S2.1–S2.6). Sprint 3 (arte y UI) es el siguiente.
+> Estado: Sprint 1 y 2 completos. S3.1 y la base de S3.2 implementados (coche 64×32, tiles/decor, marcas de derrape). Siguiente: temas/escenografía y UI 90s.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -609,7 +609,7 @@ no un prototipo de rectángulos.
 **Criterio de salida:** coche legible, 3 temas visuales distintos, HUD y título
 con identidad, controles móviles que no tapan la pista.
 
-### S3.1 — Arte del coche
+### ✅ S3.1 — Arte del coche
 
 **Objetivo:** un coche reconocible y divertido, legible a simple vista.
 
@@ -632,7 +632,7 @@ con identidad, controles móviles que no tapan la pista.
 **Depende de:** S1.3, S1.4.
 **Esfuerzo:** M.
 
-### S3.2 — Tilesets, decoración y temas
+### 🟨 S3.2 — Tilesets, decoración y temas
 
 **Objetivo:** que cada circuito tenga un escenario propio y legible.
 

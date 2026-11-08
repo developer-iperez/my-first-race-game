@@ -26,12 +26,12 @@
     "reversePowerFactor": 0.4,
     "gripDropRate": 0.5,
     "gripRiseRate": 0.05,
-    "length": 48,
-    "width": 24
+    "length": 64,
+    "width": 32
   },
   "appearance": {
     "sprite": "cars/rally-hatch.png",
-    "wheelbaseOffset": 12,
+    "wheelbaseOffset": 16,
     "skidColor": "#333333"
   }
 }

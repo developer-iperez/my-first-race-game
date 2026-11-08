@@ -9,7 +9,7 @@
   "height": 14,
   "tilewidth": 32,
   "tileheight": 32,
-  "nextlayerid": 4,
+  "nextlayerid": 5,
   "nextobjectid": 7,
   "properties": [
     {
@@ -981,6 +981,117 @@
               "value": 160
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "decor",
+      "type": "objectgroup",
+      "opacity": 1,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "draworder": "topdown",
+      "objects": [
+        {
+          "id": 100,
+          "name": "tree",
+          "type": "tree",
+          "x": 304,
+          "y": 208,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 101,
+          "name": "tree",
+          "type": "tree",
+          "x": 464,
+          "y": 240,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 102,
+          "name": "bush",
+          "type": "bush",
+          "x": 272,
+          "y": 240,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 103,
+          "name": "bush",
+          "type": "bush",
+          "x": 496,
+          "y": 208,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 104,
+          "name": "tree",
+          "type": "tree",
+          "x": 80,
+          "y": 16,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 105,
+          "name": "bush",
+          "type": "bush",
+          "x": 208,
+          "y": 16,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 106,
+          "name": "tree",
+          "type": "tree",
+          "x": 688,
+          "y": 16,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 107,
+          "name": "rock",
+          "type": "rock",
+          "x": 80,
+          "y": 432,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 108,
+          "name": "tree",
+          "type": "tree",
+          "x": 688,
+          "y": 432,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
         }
       ]
     }

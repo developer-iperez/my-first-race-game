@@ -43,7 +43,7 @@ export class TitleScene extends Phaser.Scene {
     // Coche de muestra sobre la parrilla.
     this.add
       .image(width / 2, height / 2 + 8, 'car-sprite')
-      .setDisplaySize(48, 24)
+      .setDisplaySize(64, 32)
       .setAngle(-90);
 
     // Selector de circuito: flechas interactivas + nombre del elegido

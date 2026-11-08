@@ -9,7 +9,7 @@
   "height": 14,
   "tilewidth": 32,
   "tileheight": 32,
-  "nextlayerid": 4,
+  "nextlayerid": 5,
   "nextobjectid": 7,
   "properties": [
     {
@@ -981,6 +981,106 @@
               "value": 128
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "decor",
+      "type": "objectgroup",
+      "opacity": 1,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "draworder": "topdown",
+      "objects": [
+        {
+          "id": 100,
+          "name": "rock",
+          "type": "rock",
+          "x": 336,
+          "y": 208,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 101,
+          "name": "rock",
+          "type": "rock",
+          "x": 432,
+          "y": 240,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 102,
+          "name": "bush",
+          "type": "bush",
+          "x": 304,
+          "y": 240,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 103,
+          "name": "bush",
+          "type": "bush",
+          "x": 464,
+          "y": 208,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 104,
+          "name": "rock",
+          "type": "rock",
+          "x": 80,
+          "y": 16,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 105,
+          "name": "rock",
+          "type": "rock",
+          "x": 688,
+          "y": 16,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 106,
+          "name": "rock",
+          "type": "rock",
+          "x": 80,
+          "y": 432,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
+        },
+        {
+          "id": 107,
+          "name": "rock",
+          "type": "rock",
+          "x": 688,
+          "y": 432,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "visible": true
         }
       ]
     }

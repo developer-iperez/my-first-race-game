@@ -21,6 +21,7 @@ import { NextTargetIndicator } from '../race/NextTargetIndicator';
 import { RaceAudio } from '../race/RaceAudio';
 import { RaceCountdown } from '../race/RaceCountdown';
 import { SkidParticles } from '../race/SkidParticles';
+import { SkidMarks } from '../race/SkidMarks';
 import { DriveTelemetryHud } from '../race/DriveTelemetryHud';
 import type { CarDefinition } from '../config/schema/car';
 import { frameRateIndependentDecay, type CarInput } from '../physics/carPhysics';
@@ -70,6 +71,7 @@ export class RaceScene extends Phaser.Scene {
   private audio!: RaceAudio;
   private countdown!: RaceCountdown;
   private skidParticles!: SkidParticles;
+  private skidMarks!: SkidMarks;
   private telemetryHud!: DriveTelemetryHud;
   private raceElapsedMs = 0;
   private sceneData!: RaceSceneData;
@@ -157,6 +159,7 @@ export class RaceScene extends Phaser.Scene {
 
     this.audio = new RaceAudio(this);
     this.skidParticles = new SkidParticles(this);
+    this.skidMarks = new SkidMarks(this);
     this.telemetryHud = new DriveTelemetryHud(this);
     this.telemetryHud.setVisible(Settings.get().debugTelemetryEnabled);
     // Cuenta atrás de salida: el coche queda congelado en la parrilla hasta
@@ -213,6 +216,7 @@ export class RaceScene extends Phaser.Scene {
       this.ghostPlayer.destroy();
       this.countdown.destroy();
       this.skidParticles.destroy();
+      this.skidMarks.destroy();
       this.telemetryHud.destroy();
       // scene.restart() (botón de reinicio) dispara SHUTDOWN antes de volver
       // a llamar a create(): si no se destruye aquí, el motor/derrape de la
@@ -298,6 +302,7 @@ export class RaceScene extends Phaser.Scene {
     });
     this.lapTracker.resetPreviousPosition(target.x, target.y);
     this.ghostRecorder.discard();
+    this.skidMarks.clear();
     this.raceElapsedMs += RESET_PENALTY_MS;
     this.fixedStep.reset();
     this.hud.flashMessage('RESET +3 s');
@@ -401,6 +406,16 @@ export class RaceScene extends Phaser.Scene {
         this.car.state.angle,
         false,
         this.car.surfaceKey,
+        this.carDefinition.physics.length / 2 - 6,
+      );
+      this.skidMarks.update(
+        this.car.state.x,
+        this.car.state.y,
+        this.car.state.angle,
+        false,
+        this.car.surfaceKey,
+        this.carDefinition.physics.length / 2 - 8,
+        this.carDefinition.physics.width / 2 - 3,
       );
     } else {
       const input = this.readInput(frameDeltaSeconds);
@@ -526,6 +541,7 @@ export class RaceScene extends Phaser.Scene {
           );
         }
         this.ghostRecorder.reset(this.raceElapsedMs);
+        this.skidMarks.clear();
       }
       if (lapState.finished) {
         this.audio.playFinish();
@@ -539,6 +555,16 @@ export class RaceScene extends Phaser.Scene {
         this.car.state.angle,
         this.car.isSkidding,
         this.car.surfaceKey,
+        this.carDefinition.physics.length / 2 - 6,
+      );
+      this.skidMarks.update(
+        this.car.state.x,
+        this.car.state.y,
+        this.car.state.angle,
+        this.car.isSkidding,
+        this.car.surfaceKey,
+        this.carDefinition.physics.length / 2 - 8,
+        this.carDefinition.physics.width / 2 - 3,
       );
       this.ghostPlayer.update(
         this.raceElapsedMs - this.lapTracker.currentLapStartMs,

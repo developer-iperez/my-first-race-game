@@ -73,6 +73,17 @@ function trackBosqueBravo() {
       { type: 'checkpoint', x: 144, y: 352, angle: 180, width: 128 },
       { type: 'checkpoint', x: 144, y: 96, angle: 270, width: 160 },
     ],
+    decor: [
+      { type: 'tree', x: 304, y: 208 },
+      { type: 'tree', x: 464, y: 240 },
+      { type: 'bush', x: 272, y: 240 },
+      { type: 'bush', x: 496, y: 208 },
+      { type: 'tree', x: 80, y: 16 },
+      { type: 'bush', x: 208, y: 16 },
+      { type: 'tree', x: 688, y: 16 },
+      { type: 'rock', x: 80, y: 432 },
+      { type: 'tree', x: 688, y: 432 },
+    ],
   };
 }
 
@@ -103,6 +114,16 @@ function trackDunaVeloz() {
       { type: 'checkpoint', x: 640, y: 352, angle: 90, width: 160 },
       { type: 'checkpoint', x: 144, y: 352, angle: 180, width: 128 },
       { type: 'checkpoint', x: 144, y: 96, angle: 270, width: 160 },
+    ],
+    decor: [
+      { type: 'rock', x: 336, y: 208 },
+      { type: 'rock', x: 400, y: 208 },
+      { type: 'bush', x: 368, y: 240 },
+      { type: 'rock', x: 432, y: 240 },
+      { type: 'rock', x: 80, y: 16 },
+      { type: 'rock', x: 688, y: 16 },
+      { type: 'rock', x: 80, y: 432 },
+      { type: 'rock', x: 688, y: 432 },
     ],
   };
 }
@@ -138,6 +159,16 @@ function trackSerpiente() {
       { type: 'checkpoint', x: 640, y: 352, angle: 90, width: 128 },
       { type: 'checkpoint', x: 144, y: 352, angle: 180, width: 128 },
       { type: 'checkpoint', x: 144, y: 96, angle: 270, width: 128 },
+    ],
+    decor: [
+      { type: 'rock', x: 336, y: 208 },
+      { type: 'rock', x: 432, y: 240 },
+      { type: 'bush', x: 304, y: 240 },
+      { type: 'bush', x: 464, y: 208 },
+      { type: 'rock', x: 80, y: 16 },
+      { type: 'rock', x: 688, y: 16 },
+      { type: 'rock', x: 80, y: 432 },
+      { type: 'rock', x: 688, y: 432 },
     ],
   };
 }
@@ -230,7 +261,7 @@ function buildMap(definition) {
     height: HEIGHT,
     tilewidth: TILE,
     tileheight: TILE,
-    nextlayerid: 4,
+    nextlayerid: 5,
     nextobjectid: objects.length + 1,
     properties: [
       { name: 'schemaVersion', type: 'int', value: 1 },
@@ -293,6 +324,27 @@ function buildMap(definition) {
         y: 0,
         draworder: 'topdown',
         objects,
+      },
+      {
+        id: 4,
+        name: 'decor',
+        type: 'objectgroup',
+        opacity: 1,
+        visible: true,
+        x: 0,
+        y: 0,
+        draworder: 'topdown',
+        objects: (definition.decor ?? []).map((decor, index) => ({
+          id: 100 + index,
+          name: decor.type,
+          type: decor.type,
+          x: decor.x,
+          y: decor.y,
+          width: 0,
+          height: 0,
+          point: true,
+          visible: true,
+        })),
       },
     ],
   };

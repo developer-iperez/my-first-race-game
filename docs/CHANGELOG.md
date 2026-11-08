@@ -128,5 +128,9 @@ recuperar del historial de commits.
 - S2.5: R recoloca el coche en la última puerta con penalización de 3 s.
 - S2.6: fantasma de la mejor vuelta (20 Hz, localStorage), récords separados
   por tuning, medallas por tiempo total y récord visible en el título.
+- S3.1: coche pixel art 64×32 con ruedas, parabrisas, faros, pilotos y número;
+  física y huella de colisión adaptadas al nuevo tamaño.
+- S3.2 (base): tileset pixel art con asfalto/hierba/arena/muro, decoración de
+  árboles/rocas/arbustos y marcas de derrape en pista.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

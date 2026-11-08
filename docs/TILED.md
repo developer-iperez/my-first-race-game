@@ -25,6 +25,7 @@
 | `surface` | tile layer | Sí | Superficie visual y física: asfalto, hierba, arena, muro |
 | `walls` | tile layer | No | Colisión: cualquier tile no vacío es muro |
 | `waypoints` | object layer | Sí | Spawn, meta y checkpoints |
+| `decor` | object layer | Sí | Árboles, rocas y arbustos decorativos (sin colisión) |
 
 ### Capa `surface`
 
