@@ -26,6 +26,10 @@ export function renderTrack(scene: Phaser.Scene, map: Phaser.Tilemaps.Tilemap, t
       drawCheckeredLine(graphics, waypoint);
       continue;
     }
+    if (waypoint.angle !== undefined && waypoint.width !== undefined) {
+      drawGateLine(graphics, waypoint);
+      continue;
+    }
     const color = waypoint.type === 'start_finish' ? 0xffffff : 0xffff00;
     const radius = waypoint.type === 'start_finish' ? 9 : 7;
     graphics.fillStyle(color, 0.25);
@@ -33,6 +37,26 @@ export function renderTrack(scene: Phaser.Scene, map: Phaser.Tilemaps.Tilemap, t
     graphics.lineStyle(2, color, 1);
     graphics.strokeCircle(waypoint.x, waypoint.y, radius);
   }
+}
+
+/**
+ * Puerta de checkpoint: una línea fina perpendicular a la dirección de
+ * carrera con dos postes. El indicador activo (NextTargetIndicator) se dibuja
+ * encima con más fuerza.
+ */
+function drawGateLine(graphics: Phaser.GameObjects.Graphics, waypoint: Waypoint): void {
+  const { x, y, angle = 0, width = 0 } = waypoint;
+  const radians = Phaser.Math.DegToRad(angle);
+  const perpendicular = { x: -Math.sin(radians), y: Math.cos(radians) };
+  const halfWidth = width / 2;
+  const left = { x: x - perpendicular.x * halfWidth, y: y - perpendicular.y * halfWidth };
+  const right = { x: x + perpendicular.x * halfWidth, y: y + perpendicular.y * halfWidth };
+
+  graphics.lineStyle(1, 0xffff00, 0.35);
+  graphics.lineBetween(left.x, left.y, right.x, right.y);
+  graphics.fillStyle(0xffff00, 0.5);
+  graphics.fillCircle(left.x, left.y, 3);
+  graphics.fillCircle(right.x, right.y, 3);
 }
 
 const CHECKER_SQUARE = 8;

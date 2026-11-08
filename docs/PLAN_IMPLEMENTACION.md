@@ -2,7 +2,7 @@
 
 > Origen: [`docs/AUDITORIA.md`](./AUDITORIA.md)
 > Fecha: 2026-11-08
-> Estado: Sprint 1 completo (S1.1–S1.8). S2.1 (diseño de los circuitos) es el siguiente.
+> Estado: Sprint 1 completo y S2.1–S2.3 implementados. S2.4 (resultados y pausa) es el siguiente.
 > Objetivo: pasar de prototipo técnico a un rally arcade divertido, legible,
 > rejugable y con identidad de pixel art noventero.
 
@@ -417,7 +417,7 @@ puedan cortar y una pantalla de resultados.
 **Criterio de salida:** 3 pistas jugables y distintas, con gates, anti-corte,
 resultados, pausa y récords coherentes.
 
-### S2.1 — Diseño de los 3 circuitos
+### ✅ S2.1 — Diseño de los 3 circuitos
 
 **Objetivo:** definir la identidad y el ritmo de cada pista antes de dibujar.
 
@@ -450,7 +450,7 @@ resultados, pausa y récords coherentes.
 **Depende de:** S1.4 (velocidad objetivo).
 **Esfuerzo:** S.
 
-### S2.2 — Autoría de circuitos en Tiled
+### ✅ S2.2 — Autoría de circuitos en Tiled
 
 **Objetivo:** construir los 3 circuitos nuevos con la calidad visual y jugable
 del plan.
@@ -478,7 +478,7 @@ del plan.
 **Depende de:** S1.3, S1.5, S2.1.
 **Esfuerzo:** L.
 
-### S2.3 — Checkpoints como puertas y anti-corte
+### ✅ S2.3 — Checkpoints como puertas y anti-corte
 
 **Objetivo:** que una vuelta solo cuente si se pasa por las puertas y en el
 sentido correcto.

@@ -81,11 +81,9 @@ export function buildTrackData(map: Phaser.Tilemaps.Tilemap): unknown {
       continue;
     }
     const waypoint: Record<string, unknown> = { x: obj.x, y: obj.y, type: obj.type };
-    if (obj.type === 'start_finish') {
-      if (angle !== undefined) waypoint.angle = angle;
-      const width = objectProperty(obj, 'width') as number | undefined;
-      if (width !== undefined) waypoint.width = width;
-    }
+    if (angle !== undefined) waypoint.angle = angle;
+    const width = objectProperty(obj, 'width') as number | undefined;
+    if (width !== undefined) waypoint.width = width;
     waypoints.push(waypoint);
   }
   if (!spawn) {

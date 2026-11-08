@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:driving": "vitest run tests/carPhysics.test.ts",
-    "validate": "vitest run tests/trackContent.test.ts tests/trackStructure.test.ts",
+    "validate": "vitest run tests/trackContent.test.ts tests/trackStructure.test.ts tests/trackLap.test.ts",
     "feel": "vite-node scripts/feel-metrics.ts"
   },
   "dependencies": {

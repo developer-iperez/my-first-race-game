@@ -267,7 +267,7 @@ export class RaceScene extends Phaser.Scene {
     // para saber hacia dónde salir.
     if (this.countdown.update(frameDeltaSeconds * 1000)) {
       const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
-      this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, time);
+      this.nextTargetIndicator.update(nextTarget, time);
       this.hud.update(this.lapTracker.getState(), 0, this.getDrivingHudState());
       return;
     }
@@ -388,7 +388,7 @@ export class RaceScene extends Phaser.Scene {
         this.nextTargetIndicator.hide();
       } else {
         const nextTarget = this.track.waypoints[this.lapTracker.nextTargetIndex];
-        this.nextTargetIndicator.update(nextTarget.x, nextTarget.y, this.raceElapsedMs);
+        this.nextTargetIndicator.update(nextTarget, this.raceElapsedMs);
       }
     }
 

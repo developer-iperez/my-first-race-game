@@ -40,6 +40,8 @@ export class LapTracker {
   private laps: LapRecord[] = [];
   private bestLapMs: number | null;
   private finished = false;
+  private previousX: number | null = null;
+  private previousY: number | null = null;
   private readonly expectedDirections: { x: number; y: number }[];
 
   constructor(
@@ -56,7 +58,11 @@ export class LapTracker {
   ) {
     this.bestLapMs = initialBestLapMs;
     // El coche sale ya situado en waypoints[0] (start_finish): el primer
-    // objetivo es el siguiente punto, no la propia salida.
+    // objetivo es el siguiente punto, no la propia salida. La posición
+    // anterior arranca en la salida para poder detectar el primer cruce de
+    // puerta sin esperar un frame extra.
+    this.previousX = waypoints[0]?.x ?? null;
+    this.previousY = waypoints[0]?.y ?? null;
     this.nextWaypointIndex = waypoints.length > 1 ? 1 : 0;
 
     this.expectedDirections = waypoints.map((wp, i) => {
@@ -80,17 +86,19 @@ export class LapTracker {
   update(x: number, y: number, vx: number, vy: number, elapsedMs: number): void {
     if (this.finished || this.waypoints.length === 0) return;
 
+    if (this.previousX === null || this.previousY === null) {
+      this.previousX = x;
+      this.previousY = y;
+      return;
+    }
+
     const targetIndex = this.nextWaypointIndex;
     const target = this.waypoints[targetIndex];
-    const distance = Math.hypot(x - target.x, y - target.y);
-    if (distance > this.triggerRadius) return;
+    const crossed = this.crossesGate(target, targetIndex, this.previousX, this.previousY, x, y, vx, vy);
 
-    const speed = Math.hypot(vx, vy);
-    if (speed > MIN_SPEED_FOR_DIRECTION_CHECK) {
-      const expected = this.expectedDirections[targetIndex];
-      const alignment = vx * expected.x + vy * expected.y;
-      if (alignment < 0) return; // va claramente en sentido contrario: no cuenta todavía
-    }
+    this.previousX = x;
+    this.previousY = y;
+    if (!crossed) return;
 
     // Objetivo alcanzado: el siguiente pasa a ser el de después (con vuelta
     // al principio del array). Esto solo marca a qué checkpoint apuntar
@@ -113,6 +121,56 @@ export class LapTracker {
     } else {
       this.currentLapNumber += 1;
     }
+  }
+
+  /**
+   * Una puerta con `angle` + `width` se cruza como un segmento: se exige
+   * cambiar de lado del plano en el sentido de carrera y pasar dentro de la
+   * anchura. Sin esos datos se mantiene el comportamiento antiguo de círculo
+   * de activación, para no romper circuitos antiguos.
+   */
+  private crossesGate(
+    target: Waypoint,
+    targetIndex: number,
+    previousX: number,
+    previousY: number,
+    x: number,
+    y: number,
+    vx: number,
+    vy: number,
+  ): boolean {
+    if (target.angle !== undefined && target.width !== undefined) {
+      const direction = {
+        x: Math.cos((target.angle * Math.PI) / 180),
+        y: Math.sin((target.angle * Math.PI) / 180),
+      };
+      const perpendicular = { x: -direction.y, y: direction.x };
+      const previousAlong =
+        (previousX - target.x) * direction.x + (previousY - target.y) * direction.y;
+      const currentAlong = (x - target.x) * direction.x + (y - target.y) * direction.y;
+
+      if (!(previousAlong <= 0 && currentAlong > 0)) return false;
+
+      const denominator = currentAlong - previousAlong;
+      const t = denominator !== 0 ? -previousAlong / denominator : 0;
+      const crossingX = previousX + (x - previousX) * t;
+      const crossingY = previousY + (y - previousY) * t;
+      const lateral =
+        (crossingX - target.x) * perpendicular.x + (crossingY - target.y) * perpendicular.y;
+
+      return Math.abs(lateral) <= target.width / 2;
+    }
+
+    const distance = Math.hypot(x - target.x, y - target.y);
+    if (distance > this.triggerRadius) return false;
+
+    const speed = Math.hypot(vx, vy);
+    if (speed > MIN_SPEED_FOR_DIRECTION_CHECK) {
+      const expected = this.expectedDirections[targetIndex];
+      if (vx * expected.x + vy * expected.y < 0) return false;
+    }
+
+    return true;
   }
 
   getState(): LapTrackerState {

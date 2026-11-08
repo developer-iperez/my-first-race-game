@@ -117,5 +117,11 @@ recuperar del historial de commits.
   tapar los waypoints del borde superior.
 - S1.8: validación de contenido (`npm run validate`) para superficies, spawn,
   waypoints, meta y longitud de vuelta; CI ejecuta test + validate + build.
+- S2.1/S2.2: rediseño de los 3 circuitos (5 vueltas): Bosque Bravo técnico,
+  Duna Veloz rápido con infield de arena y Serpiente con chicanes y muros.
+  Muros perimetrales, zonas de arena y documentación de Tiled.
+- S2.3: checkpoints como puertas reales (`angle` + `width`); `LapTracker`
+  detecta el cruce del segmento y no cuenta atajos ni cruces en sentido
+  contrario. Puertas visibles y flecha de dirección en el HUD.
 - Pendiente: circuito más variado (curvas, chicanes) y publicación en
   itch.io.

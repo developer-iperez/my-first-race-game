@@ -131,6 +131,55 @@ describe('LapTracker', () => {
     expect(tracker.nextTargetIndex).toBe(1);
   });
 
+  describe('puertas con anchura (angle + width)', () => {
+    const gatedWaypoints: Waypoint[] = [
+      { x: 0, y: 0, type: 'start_finish', angle: 0, width: 20 },
+      { x: 100, y: 0, type: 'checkpoint', angle: 0, width: 20 },
+      { x: 100, y: 100, type: 'checkpoint', angle: 90, width: 20 },
+      { x: 0, y: 100, type: 'checkpoint', angle: 180, width: 20 },
+    ];
+
+    it('cuenta un cruce dentro de la anchura de la puerta', () => {
+      const tracker = new LapTracker(gatedWaypoints, 3, RADIUS);
+      tracker.update(90, 0, SPEED, 0, 1000);
+      expect(tracker.nextTargetIndex).toBe(1);
+      tracker.update(110, 0, SPEED, 0, 2000);
+      expect(tracker.nextTargetIndex).toBe(2);
+    });
+
+    it('no cuenta un cruce fuera de la anchura de la puerta', () => {
+      const tracker = new LapTracker(gatedWaypoints, 3, RADIUS);
+      tracker.update(90, 20, SPEED, 0, 1000);
+      tracker.update(110, 20, SPEED, 0, 2000);
+      expect(tracker.nextTargetIndex).toBe(1);
+    });
+
+    it('no cuenta un cruce en sentido contrario al de carrera', () => {
+      const wrongDirection: Waypoint[] = [
+        { x: 0, y: 0, type: 'start_finish', angle: 0, width: 20 },
+        { x: 100, y: 0, type: 'checkpoint', angle: 180, width: 20 },
+      ];
+      const tracker = new LapTracker(wrongDirection, 3, RADIUS);
+      tracker.update(10, 0, SPEED, 0, 1000);
+      tracker.update(110, 0, SPEED, 0, 2000);
+      expect(tracker.nextTargetIndex).toBe(1);
+    });
+
+    it('completa una vuelta pasando por las 4 puertas en orden', () => {
+      const tracker = new LapTracker(gatedWaypoints, 3, RADIUS);
+      tracker.update(110, 0, SPEED, 0, 1000);
+      tracker.update(110, 110, 0, SPEED, 2000);
+      tracker.update(-10, 110, -SPEED, 0, 3000);
+      tracker.update(-10, 10, 0, -SPEED, 3500);
+      tracker.update(10, 10, 0, -SPEED, 4000);
+
+      const state = tracker.getState();
+      expect(state.lastLapMs).toBe(4000);
+      expect(state.currentLap).toBe(2);
+      expect(tracker.nextTargetIndex).toBe(1);
+    });
+  });
+
   describe('dirección de cruce (bug: ir marcha atrás no debe contar)', () => {
     it('does not advance the target when reaching it with velocity opposite the expected direction', () => {
       const tracker = new LapTracker(waypoints, 3, RADIUS);

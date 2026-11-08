@@ -69,8 +69,10 @@ Que *conducir sea divertido* aunque no haya arte final.
 - ✅ Ajustes de conducción personalizables: sliders de velocidad máxima,
   aceleración y agarre (sustituyen a los antiguos niveles de dificultad),
   y opción de sonido activado/desactivado
-- ⬜ Un circuito redondo y divertido
-- ⬜ Publicado en GitHub Pages (y itch.io)
+- ✅ Tres circuitos rediseñados (Bosque Bravo, Duna Veloz y Serpiente) con
+  5 vueltas, muros, chicanes y zonas de arena
+- ✅ Checkpoints como puertas con anchura y dirección (anti-corte)
+- ⬜ Publicado en itch.io
 
 ---
 Ver el razonamiento completo en [`ANALISIS.md`](./ANALISIS.md).
